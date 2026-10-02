@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1 and 2 are implemented: the documentation/package foundation and strict market-data domain contracts with tests. Phases 3–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–3 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests. Successful live downloading remains unverified after an HTTP 429 probe. Phases 4–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -14,13 +14,15 @@ Deliverables: README, architecture source of truth, roadmap, minimal src-layout 
 
 Purpose: establish market-neutral contracts before choosing ingestion implementation.
 
-Implemented: strict Pydantic Instrument, TradingCalendar reference, MarketBar, and MarketQuote models; AssetClass, PriceType, Timeframe, and VolumeType enums; Forex metadata checks; timezone-aware UTC observations; Decimal prices/quantities; and contract tests. Calendar schedule resolution, dataset-wide validation, ingestion, and storage remain future work.
+Implemented: strict Pydantic Instrument, TradingCalendar reference, MarketBar, and MarketQuote models; AssetClass, PriceType, Timeframe, and VolumeType enums; Forex metadata checks; timezone-aware UTC observations; Decimal prices/quantities; and contract tests. Calendar schedule resolution, dataset-wide validation, and storage remain future work; Phase 3 supplies historical quote ingestion.
 
 Deliverables: typed instrument, asset-class, timestamp, price/quantity, currency, calendar, and observation models, with Forex metadata and schema tests. Add Pydantic if selected for these contracts; document bid/ask/mid semantics and extensibility.
 
 ## 3. Forex historical-data ingestion
 
 Purpose: obtain traceable historical observations through the first concrete market adapter.
+
+Implemented: provider-neutral quote request/protocol; Dukascopy public hourly tick adapter for EUR/USD and USD/JPY; injectable urllib transport with finite timeouts and payload bounds; isolated LZMA-Alone/big-endian decoding; metadata-based Decimal scaling; UTC range filtering; payload-hash provenance; and distinct no-data, transport, corruption, and unsupported-configuration handling. Tiny generated binary fixtures and HTTP doubles keep all tests offline. Phase 2 contracts and runtime dependencies are unchanged. No storage or bar aggregation is implemented.
 
 Deliverables: selected provider/format adapter, licensing notes, raw-source provenance, import configuration, error handling, and small legal fixtures. Verify ingestion with reproducible inputs; do not imply screenshots are historical datasets.
 

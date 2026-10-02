@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phase 2 market-data domain models implemented.** The repository contains the documentation/package foundation and strict provider-neutral instrument, calendar-reference, OHLC-bar, and bid/ask-quote contracts with validation tests. No market-data ingestion, strategy engine, backtesting, financial metrics, AI integration, agents, risk engine, API, or dashboard is implemented.
+**Status: early development — Phases 1–3 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset-wide validation, OHLC aggregation/resampling, storage, strategies, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -36,7 +36,7 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 | Frontend | Separate professional web dashboard, likely React/Next.js | Planned; final framework not selected |
 | Engineering | pytest, Git, structured logging; Docker and CI later | pytest development extra and existing Git metadata |
 
-Pydantic is the sole runtime dependency at this stage. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
+Pydantic is the sole runtime dependency at this stage. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
 
 ## Repository structure
 
@@ -55,15 +55,22 @@ agentic_quant_lab/
 │       └── data/
 │           ├── __init__.py
 │           ├── enums.py
-│           └── models.py
+│           ├── models.py
+│           └── providers/
+│               ├── __init__.py
+│               ├── base.py
+│               └── dukascopy.py
 └── tests/
     ├── __init__.py
     └── data/
         ├── __init__.py
-        └── test_models.py
+        ├── test_models.py
+        └── providers/
+            ├── __init__.py
+            └── test_dukascopy.py
 ```
 
-The implemented market-data contracts are exported from `quantlab.data`. All other future layers remain architectural concepts, not empty modules in the current tree. Local data, uploads, generated artifacts, databases, logs, and secrets belong outside version control.
+The implemented market-data contracts are exported from `quantlab.data`. The provider-neutral historical quote interface lives in `quantlab.data.providers`; Dukascopy-specific code remains in its adapter module. Other future layers remain architectural concepts, not empty modules in the current tree. Local data, uploads, generated artifacts, databases, logs, and secrets belong outside version control.
 
 ## Development setup
 
@@ -78,9 +85,17 @@ python -c "import quantlab"
 
 For PowerShell, activation is `.venv\Scripts\Activate.ps1`; for POSIX shells, use `source .venv/bin/activate`.
 
-Run `python -m pytest` for market-data contract tests. These cover Forex conventions, strict field types, UTC normalization, OHLC and quote bounds, volume units, immutability, and JSON round trips. The import check above verifies the installed package, not any trading functionality.
+Run `python -m pytest` for domain and offline ingestion tests. These cover Forex conventions, strict field types, UTC normalization, OHLC/quote bounds, volume units, immutability, JSON round trips, binary decoding/scaling, request boundaries, provenance, absent data, and transport/corruption errors. No test requires live HTTP access. The import check above verifies the installed package, not any trading functionality.
 
 The `.env.example` file contains guidance only: no environment configuration is consumed yet and no credentials are required.
+
+## Historical quote ingestion
+
+Import `HistoricalQuoteRequest` from `quantlab.data.providers` and `DukascopyProvider` from `quantlab.data.providers.dukascopy`. Construct an Instrument with the pair's explicit price metadata, then iterate `provider.fetch(request)`. Requests accept aware start/end datetimes and use an inclusive start and exclusive end. Fetching requires network access and happens only when the iterator is consumed.
+
+The initial registry supports EUR/USD and USD/JPY. It selects the public hourly `.bi5` archive, decodes LZMA-Alone binary ticks, and returns existing MarketQuote objects without bar aggregation or storage. Additional providers can implement the same quote protocol. See [the implemented ingestion boundary](docs/architecture.md#implemented-phase-3-ingestion) for exact format assumptions, the source-event availability policy, limits, and error handling.
+
+Downloaded data remains subject to Dukascopy's applicable terms/licensing; public access does not automatically permit redistribution. No real historical dataset is included in this repository.
 
 ## Roadmap summary
 
