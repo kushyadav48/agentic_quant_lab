@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–4 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Strategies, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–5 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. Strategy execution, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -89,7 +89,7 @@ python -c "import quantlab"
 
 For PowerShell, activation is `.venv\Scripts\Activate.ps1`; for POSIX shells, use `source .venv/bin/activate`.
 
-Run `python -m pytest` for domain, offline ingestion, quality, resampling, and local storage tests. These cover Forex conventions, strict field types, UTC normalization, OHLC/quote bounds, volume units, immutability, JSON round trips, binary decoding/scaling, request boundaries, provenance, absent data, and transport/corruption errors. No test requires live HTTP access. The import check above verifies the installed package, not any trading functionality.
+Run `python -m pytest` for domain, offline ingestion, quality, resampling, local storage, and strategy contract tests. These cover Forex conventions, strict field types, UTC normalization, OHLC/quote bounds, volume units, immutability, JSON round trips, binary decoding/scaling, request boundaries, provenance, absent data, and transport/corruption errors. No test requires live HTTP access. The import check above verifies the installed package, not any trading functionality.
 
 The `.env.example` file contains guidance only: no environment configuration is consumed yet and no credentials are required.
 
@@ -156,6 +156,10 @@ content identities on read. Metadata includes source/type, bounds/count,
 creation time, transformation version and parents; creation time is excluded
 from the content hash so identical saves retain the same identity.
 See [Phase 4 contracts and limitations](docs/architecture.md#implemented-phase-4-datasets).
+
+## Strategy specifications
+
+Import immutable strategy contracts from `quantlab.strategies`. All authoring routes share the same typed content, bounded declarative rules, parameters, provenance, safe timing intent, and version-bound approval contract. No indicators or strategy execution are implemented. See [the strategy contract and manual approval example](docs/strategy-spec.md) for digest policy, lifecycle, validation and limitations.
 
 ## Roadmap summary
 

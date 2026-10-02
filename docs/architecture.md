@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–4 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, and Phase 4 validation, UTC resampling, and local dataset storage described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–5 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, and Phase 5 strategy specification contracts described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -251,13 +251,23 @@ Provider licensing and redistribution constraints belong to dataset metadata. Lo
 
 ### Strategy specification
 
-A versioned, typed StrategySpecification will be the shared contract for manual, natural-language, image-derived, and future ML-informed proposals. Planned fields include instrument universe, timeframe, session filters, feature definitions, entry/exit conditions, sizing policy references, order timing, execution assumptions, parameters, and provenance.
+Implemented in `quantlab.strategies`: strict, deeply immutable schema-v1
+StrategySpecification with separate stable identity, revision and StrategyContent;
+flat ALL/ANY comparison rules and discriminated market/feature/parameter/constant
+operands; separate LONG/SHORT/BOTH rules; typed immutable feature arguments and
+bounded parameters; explicit stop/target units, UTC session intent and bar-close /
+next-bar-open timing. All references and direction constraints are validated.
 
-Use a declarative rule representation with a bounded supported vocabulary. Never execute arbitrary model-generated Python, expressions through unsafe evaluation, or uploaded code. Reject unsupported rules and unresolved ambiguities rather than guessing executable semantics.
-
-Separate schema validity from human approval and research eligibility. The intended lifecycle is draft → validated → approved → tested, with validation results and paper-trading eligibility attached to specific versions. Human approval confirms interpretation; it does not establish profitability or risk suitability.
-
-Approval must identify the immutable specification version/content digest, reviewer, and review timestamp. Edits invalidate approval for the revised version. AI-origin drafts require explicit human approval before backtesting or paper trading. Image-derived drafts additionally retain the reviewed input bundle and interpretation record. Manual submissions will use the same review/approval contract for a consistent execution boundary.
+The implemented lifecycle is DRAFT → VALIDATED → APPROVED. Approval binds strategy
+ID, version and canonical SHA-256 content digest; revisions create new drafts
+without approval. Human approval confirms interpretation and structure, never
+profitability or financial validation. Reviewer authorization, persistence,
+research eligibility, indicator calculations and execution remain future services.
+All provenance fields affect the content digest; creation/review timestamps and
+lifecycle metadata do not. The complete policy, manual approval example and limits
+are defined in [the strategy contract source of truth](strategy-spec.md).
+No executable expressions, arbitrary Python, eval or recursive rule trees are
+accepted. Future AI/ML authoring routes must emit the same reviewed contract.
 
 ### Features and indicators
 

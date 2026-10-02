@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–4 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phases 5–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–5 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phases 6–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -30,13 +30,15 @@ Deliverables: selected provider/format adapter, licensing notes, raw-source prov
 
 Purpose: produce reliable, versioned research datasets.
 
-Implemented: immutable typed quality summaries distinguishing exact duplicates/repeated timestamps, ordering and consistency errors, empty warnings, configurable consecutive-event gap thresholds, and caller-scheduled coverage gaps; opt-in stable normalization with explicit duplicate policies; strict causal UTC bid/ask/mid OHLC and bar coarsening with missing-data policies and no invented quote volume; complete deterministic dataset metadata/provenance; transactional standard-library SQLite storage for validated datasets with lossless typed reads and integrity checks; offline behavioral and pipeline tests. Pure Python canonical sequences are the initial representation; no dependency is introduced. Missing observations/bars are never fabricated. Pandas versus Polars, session/DST calendar aggregation, raw payload retention, columnar export, and PostgreSQL remain open or deferred. Phase 5 and subsequent phases remain unimplemented.
+Implemented: immutable typed quality summaries distinguishing exact duplicates/repeated timestamps, ordering and consistency errors, empty warnings, configurable consecutive-event gap thresholds, and caller-scheduled coverage gaps; opt-in stable normalization with explicit duplicate policies; strict causal UTC bid/ask/mid OHLC and bar coarsening with missing-data policies and no invented quote volume; complete deterministic dataset metadata/provenance; transactional standard-library SQLite storage for validated datasets with lossless typed reads and integrity checks; offline behavioral and pipeline tests. Pure Python canonical sequences are the initial representation; no dependency is introduced. Missing observations/bars are never fabricated. Pandas versus Polars, session/DST calendar aggregation, raw payload retention, columnar export, and PostgreSQL remain open or deferred. Phase 5 adds strategy contracts below; subsequent phases remain unimplemented.
 
 Deliverables: duplicate/gap/OHLC/timestamp checks, explicit missing-data policy, causal resampling and bar-availability semantics, normalized storage adapter, dataset identifiers, and quality reports. Choose dataframe and file formats here. A local storage adapter can precede PostgreSQL.
 
 ## 5. Strategy specification
 
-Purpose: define the shared executable contract for all strategy input routes.
+Purpose: define the shared declarative strategy contract for all strategy input routes.
+
+Implemented: immutable schema-v1 StrategySpecification, identity/revision/content separation, bounded ALL/ANY rules, typed operands/features/parameters, long/short side constraints, explicit stop/target units, UTC session and safe timing intent, provenance, deterministic content digest, and exact-version approval lifecycle. Revisions drop approval. The manual approval example and contract policy live in [strategy-spec.md](strategy-spec.md). All 303 tests pass, including 72 Phase 5 behavioral cases. No dependencies or execution engine are added. Phase 6 remains planned.
 
 Deliverables: versioned StrategySpecification, bounded declarative rules, parameter/schema validation, provenance, immutable version identities, and user approval state. Define approval invalidation on edits and reject unsupported or ambiguous rules. Establish an approved manual strategy fixture for subsequent engine work.
 
