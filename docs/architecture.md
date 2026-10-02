@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–6 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, and the Phase 6 causal feature engine described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–7 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -217,6 +217,35 @@ aliases do not automatically bind strategy aliases. No dynamic plugins,
 cross-timeframe joins, persistence or execution are added. See
 [feature-engine.md](feature-engine.md) for formulas, examples and limitations.
 
+## Implemented Phase 7 backtesting
+
+quantlab.backtesting consumes an exact-version APPROVED StrategySpecification,
+canonical MarketBar inputs, supplied Phase 6 FeatureObservation values, explicit
+Instrument metadata and a strict BacktestConfig. It reuses Phase 4 dataset checks,
+Phase 5 approval/schema validation, and Phase 6 feature compatibility. Unsupported
+stop_loss, take_profit, session, sizing_reference, BID/ASK operands, multi-instrument
+strategies and unavailable registry feature categories are rejected explicitly.
+
+The bar loop executes a pending action at the following input bar open before
+evaluating that bar close. Declarative comparisons, ALL/ANY and crossings use
+TRUE/FALSE/UNAVAILABLE, exact bar-relative feature timestamps and availability
+no later than decision time. Missing history is never filled. BOTH conflicts fail.
+One fixed-quantity position is allowed, with no pyramiding, same-open reversal or
+forced end-of-data liquidation. Final signals without a following bar stay unfilled.
+
+Frozen signals, fills, positions, closed trades, equity points and BacktestResult
+retain deterministic identities and Decimal financial values. Research equity is
+initial capital + realized P&L + close-marked unrealized P&L; this does not debit
+entry capital or model brokerage cash/margin. Arithmetic uses an isolated 34-digit
+Decimal context. Quantity must respect existing quantity_increment metadata.
+A small next-open fill helper owns the zero-cost execution price boundary for
+Phase 8. Historical close marks are retrospective reporting; complete bar
+availability gates decisions, not the assumed next-open fill.
+
+[Backtesting contracts and examples](backtesting-engine.md) define causality,
+validation, accounting and limitations. Execution costs, risk and performance
+analytics remain later phases.
+
 ## Planned system flow
 
 ```mermaid
@@ -285,7 +314,7 @@ The implemented lifecycle is DRAFT → VALIDATED → APPROVED. Approval binds st
 ID, version and canonical SHA-256 content digest; revisions create new drafts
 without approval. Human approval confirms interpretation and structure, never
 profitability or financial validation. Reviewer authorization, persistence,
-research eligibility and execution remain future services; Phase 6 supplies indicator calculations separately.
+research eligibility remain future services; Phase 6 supplies indicator calculations and Phase 7 enforces exact-version approval before research backtesting.
 All provenance fields affect the content digest; creation/review timestamps and
 lifecycle metadata do not. The complete policy, manual approval example and limits
 are defined in [the strategy contract source of truth](strategy-spec.md).
@@ -298,11 +327,11 @@ Compute deterministic, timestamped features from validated historical observatio
 
 ### Backtesting and execution simulation
 
-Turn an approved specification, versioned dataset, and explicit run configuration into deterministic orders, fills, positions, cash balances, and an equity curve. Separate signal formation from order submission and fill timing. An observation available only at bar close must not justify an earlier fill; same-bar execution requires a documented finer-grained observation model.
+Phase 7 implements approved-specification signals, next-open fills, positions, closed trades and research equity through a deterministic bar loop. Cash balances and order/execution realism remain future work. Signal formation is separate from fill timing; close-time observations cannot justify an earlier fill. See the implemented Phase 7 contract above.
 
 Execution policies will model bid/ask spread, slippage, fees, latency assumptions, order types, minimum sizes, tick/lot rounding, and market availability. Forex financing/rollover and currency conversion must be explicit when relevant. If both stop and target fall inside a bar and their order is unknown, use a documented conservative policy or reject the ambiguous scenario; do not infer a favorable path.
 
-Research sizing and account constraints must be deterministic from the first engine iteration. A later reusable risk engine will centralize these controls before paper trading. Cost-free engine fixtures may test mechanics, but results cannot be presented as realistic research until the cost-model phase is complete.
+Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simple research equity. Account constraints and a reusable risk engine remain later work before paper trading. Cost-free engine fixtures may test mechanics, but results cannot be presented as realistic research until the cost-model phase is complete.
 
 ### Performance analytics
 
@@ -404,7 +433,7 @@ These boundaries are conceptual now. Add concrete modules incrementally with tes
 | Overfitting/data leakage | Isolate holdouts, fit on training windows, record tuning histories, and use walk-forward/robustness evaluation. |
 | Reproducibility | Version inputs, assumptions, code, schemas, models, and run artifacts; record stochastic seeds. |
 
-These are planned acceptance requirements, not claims of implemented protections.
+Phase 7 enforces exact-version schema approval, input availability and next-open timing. The remaining requirements in this table describe later acceptance boundaries.
 
 ## Multi-market extensibility
 
@@ -424,4 +453,4 @@ Do not implement evolution loops, self-modifying code, autonomous promotions, or
 
 ## Open decisions
 
-Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); event-driven versus vectorized engine internals; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
+Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); future optimization of the implemented bar-by-bar engine; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.

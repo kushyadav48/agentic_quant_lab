@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–6 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. Strategy execution, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–7 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Execution costs, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -159,7 +159,7 @@ See [Phase 4 contracts and limitations](docs/architecture.md#implemented-phase-4
 
 ## Strategy specifications
 
-Import immutable strategy contracts from `quantlab.strategies`. All authoring routes share the same typed content, bounded declarative rules, parameters, provenance, safe timing intent, and version-bound approval contract. Feature computation is available separately; strategy execution remains planned. See [the strategy contract and manual approval example](docs/strategy-spec.md) for digest policy, lifecycle, validation and limitations.
+Import immutable strategy contracts from `quantlab.strategies`. All authoring routes share the same typed content, bounded declarative rules, parameters, provenance, safe timing intent, and version-bound approval contract. Feature computation and approved-strategy research backtesting are available separately. See [the strategy contract and manual approval example](docs/strategy-spec.md) for digest policy, lifecycle, validation and limitations.
 
 ## Feature computation
 
@@ -168,6 +168,16 @@ The engine computes raw OHLC, simple/log returns, SMA, EMA, Wilder RSI and popul
 rolling volatility from validated bars, with omitted warm-up values and causal
 availability. It uses Decimal and adds no dependencies. See [formulas, usage and
 strategy compatibility](docs/feature-engine.md). Feature computation does not execute strategies.
+
+## Deterministic research backtesting
+
+Import BacktestConfig and run_backtest from quantlab.backtesting. The engine
+requires exact-version APPROVED strategy content and validated canonical bars,
+consumes supplied Phase 6 features, and evaluates rules at bar close with fills
+at the following input bar open. Frozen results retain signals, fills, closed
+trades, any final open position, and Decimal research equity. Fixed quantity and
+zero costs are explicit assumptions; stop/target, session and external sizing
+intent are rejected. See [contracts, timing and examples](docs/backtesting-engine.md).
 
 ## Roadmap summary
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–6 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phases 7–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–7 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phases 8–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -46,7 +46,7 @@ Deliverables: versioned StrategySpecification, bounded declarative rules, parame
 
 Purpose: compute reusable, deterministic strategy inputs.
 
-Implemented: immutable feature observations/requests/definitions; fixed read-only registry; raw OHLC, simple/log returns, SMA, SMA-seeded EMA, Wilder RSI and population volatility of simple returns; isolated 34-digit Decimal calculations; Phase 4 input validation; omitted warm-up observations; full dependency availability including recursive history; shared multi-feature computation; and structural strategy-reference checks. All 411 tests pass, including 107 Phase 6 cases. No dependencies, strategy execution or backtesting are added. Formulas and limitations are documented in [feature-engine.md](feature-engine.md). Phase 7 remains planned.
+Implemented: immutable feature observations/requests/definitions; fixed read-only registry; raw OHLC, simple/log returns, SMA, SMA-seeded EMA, Wilder RSI and population volatility of simple returns; isolated 34-digit Decimal calculations; Phase 4 input validation; omitted warm-up observations; full dependency availability including recursive history; shared multi-feature computation; and structural strategy-reference checks. All 411 tests pass, including 107 Phase 6 cases. No dependencies, strategy execution or backtesting are added. Formulas and limitations are documented in [feature-engine.md](feature-engine.md). Phase 7 adds approved-strategy simulation below.
 
 Deliverables: an initial small indicator set, feature registry/contracts, warm-up and missing-value policies, availability timestamps, and reference-value/causality checks. Add only the quantitative libraries required by implemented features.
 
@@ -54,7 +54,21 @@ Deliverables: an initial small indicator set, feature registry/contracts, warm-u
 
 Purpose: replay approved strategies against historical data with explicit timing.
 
-Deliverables: simulation clock, signal/order/fill lifecycle, account state, deterministic sizing/account constraints, cash/positions/equity artifacts, and replayable run configurations. Test no future-data access and signal/fill ordering. Any cost-free fixtures are engine tests, not realistic performance claims.
+Implemented and complete: immutable config/signals/fills/positions/trades/equity/results;
+strict exact-version approval, bar and feature validation; declarative comparisons,
+ALL/ANY tri-state evaluation and offset-aware crossings; causal BAR_CLOSE signals
+and NEXT_BAR_OPEN fills; fixed quantity with existing quantity-increment checks;
+one-position LONG/SHORT/BOTH lifecycles; deterministic conflict rejection; gross
+Decimal P&L and research equity; final open-position retention and unfilled final
+signals. Unsupported stop_loss, take_profit, session, sizing_reference and BID/ASK
+operands are rejected. There is no brokerage cash/margin model, cost realism or
+performance analytics. All 591 tests pass, including 167 Phase 7 cases. No
+dependencies are added. See [backtesting-engine.md](backtesting-engine.md).
+
+Deliverables: deterministic bar replay, signal/fill/position lifecycle, fixed research
+sizing, immutable trade/equity artifacts and explicit causal timing. Phase 8 remains
+planned for spread/slippage/cost behavior; Phase 9 remains planned for analytics.
+Cost-free fixtures establish mechanics, not realistic performance claims.
 
 ## 8. Spread, slippage, and cost modeling
 
