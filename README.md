@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–5 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. Strategy execution, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–6 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. Strategy execution, backtesting, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -159,7 +159,15 @@ See [Phase 4 contracts and limitations](docs/architecture.md#implemented-phase-4
 
 ## Strategy specifications
 
-Import immutable strategy contracts from `quantlab.strategies`. All authoring routes share the same typed content, bounded declarative rules, parameters, provenance, safe timing intent, and version-bound approval contract. No indicators or strategy execution are implemented. See [the strategy contract and manual approval example](docs/strategy-spec.md) for digest policy, lifecycle, validation and limitations.
+Import immutable strategy contracts from `quantlab.strategies`. All authoring routes share the same typed content, bounded declarative rules, parameters, provenance, safe timing intent, and version-bound approval contract. Feature computation is available separately; strategy execution remains planned. See [the strategy contract and manual approval example](docs/strategy-spec.md) for digest policy, lifecycle, validation and limitations.
+
+## Feature computation
+
+Import FeatureRequest, FeatureParameter and compute_features from quantlab.features.
+The engine computes raw OHLC, simple/log returns, SMA, EMA, Wilder RSI and population
+rolling volatility from validated bars, with omitted warm-up values and causal
+availability. It uses Decimal and adds no dependencies. See [formulas, usage and
+strategy compatibility](docs/feature-engine.md). Feature computation does not execute strategies.
 
 ## Roadmap summary
 

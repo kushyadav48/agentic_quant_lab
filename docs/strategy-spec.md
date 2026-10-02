@@ -79,9 +79,18 @@ Identifiers follow [A-Za-z][A-Za-z0-9_-]{0,127}; dotted paths, function calls,
 arbitrary Python expressions, eval and executable rule strings are unsupported.
 Descriptions/notes are inert text, never expressions.
 
-FeatureReference declares a unique feature_id, category (indicator, ml_signal,
-level), at most 32 uniquely named FeatureArgument scalar values, and optional
-Timeframe override. Market fields are direct operands, not indicator definitions.
+FeatureReference declares a unique strategy-visible feature_id alias, optional
+implementation_id identifying the registered calculation, category (indicator,
+ml_signal, level), at most 32 uniquely named FeatureArgument scalar values, and
+optional Timeframe override. implementation_id uses the same safe Identifier
+constraints as feature_id. When omitted, calculation lookup falls back to
+feature_id. For example, fast_sma and slow_sma may both declare implementation_id
+sma with different period arguments; operands continue to reference their aliases.
+implementation_id participates in the content digest, including its default null
+value, so changing the calculation changes content identity. The added field also
+changes pre-extension digests of feature-bearing content; existing serialized
+approvals for such content need a new review against the current digest.
+Market fields are direct operands, not indicator definitions.
 Feature parameters are immutable structured name/value data, not arbitrary
 objects. Feature and parameter operands, including stop/target feature references,
 must resolve to declarations. Indicator algorithms, registry lookup, ML artifacts,

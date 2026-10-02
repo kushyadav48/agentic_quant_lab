@@ -290,3 +290,43 @@ def test_fresh_import_has_no_network():
     result = subprocess.run([sys.executable, "-B", "-c", code],
                             capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+
+
+def test_feature_implementation_roundtrip_and_immutability():
+    feature = FeatureReference(feature_id="fast_sma", implementation_id="sma",
+        feature_type=FeatureType.INDICATOR,
+        parameters=(FeatureArgument(name="period", value=2),))
+    assert FeatureReference.model_validate_json(feature.model_dump_json()) == feature
+    with pytest.raises(ValidationError):
+        feature.implementation_id = "ema"
+    legacy = FeatureReference.model_validate_json(
+        '{"feature_id":"sma","feature_type":"indicator","parameters":[{"name":"period","value":2}]}')
+    assert legacy.implementation_id is None
+    assert FeatureReference.model_validate_json(legacy.model_dump_json()) == legacy
+
+
+@pytest.mark.parametrize("identifier", ["", " ", "a.b", "sma(2)", "__import__", "a\nb", 1, True])
+def test_unsafe_or_non_string_feature_implementation_rejected(identifier):
+    with pytest.raises(ValidationError):
+        FeatureReference(feature_id="fast_sma", implementation_id=identifier,
+                         feature_type=FeatureType.INDICATOR)
+
+
+def test_feature_implementation_changes_content_digest_and_invalidates_approval():
+    sma = FeatureReference(feature_id="fast_average", implementation_id="sma",
+        feature_type=FeatureType.INDICATOR,
+        parameters=(FeatureArgument(name="period", value=2),))
+    ema = FeatureReference(feature_id=sma.feature_id, implementation_id="ema",
+                          feature_type=sma.feature_type, parameters=sma.parameters)
+    original = spec(content=content(features=(sma,)))
+    changed = content(features=(ema,))
+    assert original.content_digest != changed.content_digest()
+    assert StrategyContent.model_validate_json(changed.model_dump_json()).content_digest() == changed.content_digest()
+    omitted = FeatureReference(feature_id=sma.feature_id, feature_type=sma.feature_type,
+                               parameters=sma.parameters)
+    assert content(features=(omitted,)).content_digest() != original.content_digest
+    approved = original.mark_validated().approve(approval(original))
+    revised = approved.revise(changed)
+    assert revised.approval is None and revised.state is ApprovalState.DRAFT
+    with pytest.raises(ValidationError):
+        revised.mark_validated().approve(approved.approval)

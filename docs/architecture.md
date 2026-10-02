@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–5 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, and Phase 5 strategy specification contracts described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–6 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, and the Phase 6 causal feature engine described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -194,6 +194,29 @@ rejected without migration. There is no import-time file access, deletion API,
 raw .bi5 payload retention, or redistribution authorization. Local artifacts stay
 outside Git; all persistence tests use temporary directories and synthetic data.
 
+## Implemented Phase 6 features
+
+quantlab.features adds immutable typed definitions, requests, integer parameters
+and Decimal observations; a fixed read-only registry; a deterministic indicator
+dispatcher; and a validated multi-feature batch pipeline. Phase 4 validation is
+reused with explicit Instrument metadata. Gaps and multiple source references
+are allowed, while malformed, mixed or unordered bar series are rejected.
+
+The initial set is raw OHLC, simple/log returns, SMA, SMA-seeded EMA, Wilder RSI
+and unannualized population volatility of simple returns. Calculations use an
+isolated 34-digit Decimal context, including native ln/sqrt. Warm-up observations
+are omitted. Timestamps label the ending bar end; availability covers every
+contributing input. EMA/RSI retain prefix availability; rolling dependencies expire
+as inputs leave the window.
+
+The pipeline preserves identities/parameters, shares simple returns and identical
+computations, and orders output by timestamp and feature ID. Structural strategy
+compatibility checks exact registry IDs, INDICATOR type, arguments and matching
+timeframe overrides without evaluating rules or altering approval. Pipeline
+aliases do not automatically bind strategy aliases. No dynamic plugins,
+cross-timeframe joins, persistence or execution are added. See
+[feature-engine.md](feature-engine.md) for formulas, examples and limitations.
+
 ## Planned system flow
 
 ```mermaid
@@ -262,7 +285,7 @@ The implemented lifecycle is DRAFT → VALIDATED → APPROVED. Approval binds st
 ID, version and canonical SHA-256 content digest; revisions create new drafts
 without approval. Human approval confirms interpretation and structure, never
 profitability or financial validation. Reviewer authorization, persistence,
-research eligibility, indicator calculations and execution remain future services.
+research eligibility and execution remain future services; Phase 6 supplies indicator calculations separately.
 All provenance fields affect the content digest; creation/review timestamps and
 lifecycle metadata do not. The complete policy, manual approval example and limits
 are defined in [the strategy contract source of truth](strategy-spec.md).

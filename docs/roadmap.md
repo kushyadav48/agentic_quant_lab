@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–5 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phases 6–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–6 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phases 7–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -38,13 +38,15 @@ Deliverables: duplicate/gap/OHLC/timestamp checks, explicit missing-data policy,
 
 Purpose: define the shared declarative strategy contract for all strategy input routes.
 
-Implemented: immutable schema-v1 StrategySpecification, identity/revision/content separation, bounded ALL/ANY rules, typed operands/features/parameters, long/short side constraints, explicit stop/target units, UTC session and safe timing intent, provenance, deterministic content digest, and exact-version approval lifecycle. Revisions drop approval. The manual approval example and contract policy live in [strategy-spec.md](strategy-spec.md). All 303 tests pass, including 72 Phase 5 behavioral cases. No dependencies or execution engine are added. Phase 6 remains planned.
+Implemented: immutable schema-v1 StrategySpecification, identity/revision/content separation, bounded ALL/ANY rules, typed operands/features/parameters, long/short side constraints, explicit stop/target units, UTC session and safe timing intent, provenance, deterministic content digest, and exact-version approval lifecycle. Revisions drop approval. The manual approval example and contract policy live in [strategy-spec.md](strategy-spec.md). All 303 tests pass, including 72 Phase 5 behavioral cases. No dependencies or execution engine are added. Phase 6 adds feature computation below.
 
 Deliverables: versioned StrategySpecification, bounded declarative rules, parameter/schema validation, provenance, immutable version identities, and user approval state. Define approval invalidation on edits and reject unsupported or ambiguous rules. Establish an approved manual strategy fixture for subsequent engine work.
 
 ## 6. Feature/indicator engine
 
 Purpose: compute reusable, deterministic strategy inputs.
+
+Implemented: immutable feature observations/requests/definitions; fixed read-only registry; raw OHLC, simple/log returns, SMA, SMA-seeded EMA, Wilder RSI and population volatility of simple returns; isolated 34-digit Decimal calculations; Phase 4 input validation; omitted warm-up observations; full dependency availability including recursive history; shared multi-feature computation; and structural strategy-reference checks. All 411 tests pass, including 107 Phase 6 cases. No dependencies, strategy execution or backtesting are added. Formulas and limitations are documented in [feature-engine.md](feature-engine.md). Phase 7 remains planned.
 
 Deliverables: an initial small indicator set, feature registry/contracts, warm-up and missing-value policies, availability timestamps, and reference-value/causality checks. Add only the quantitative libraries required by implemented features.
 

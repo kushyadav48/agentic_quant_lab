@@ -68,6 +68,7 @@ class FeatureArgument(Contract):
 
 class FeatureReference(Contract):
     feature_id: Identifier
+    implementation_id: Identifier | None = None
     feature_type: FeatureType
     parameters: tuple[FeatureArgument, ...] = Field(default=(), max_length=32)
     timeframe: Timeframe | None = None
