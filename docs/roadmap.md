@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–3 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests. Successful live downloading remains unverified after an HTTP 429 probe. Phases 4–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–4 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phases 5–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -22,13 +22,15 @@ Deliverables: typed instrument, asset-class, timestamp, price/quantity, currency
 
 Purpose: obtain traceable historical observations through the first concrete market adapter.
 
-Implemented: provider-neutral quote request/protocol; Dukascopy public hourly tick adapter for EUR/USD and USD/JPY; injectable urllib transport with finite timeouts and payload bounds; isolated LZMA-Alone/big-endian decoding; metadata-based Decimal scaling; UTC range filtering; payload-hash provenance; and distinct no-data, transport, corruption, and unsupported-configuration handling. Tiny generated binary fixtures and HTTP doubles keep all tests offline. Phase 2 contracts and runtime dependencies are unchanged. No storage or bar aggregation is implemented.
+Implemented: provider-neutral quote request/protocol; Dukascopy public hourly tick adapter for EUR/USD and USD/JPY; injectable urllib transport with finite timeouts and payload bounds; isolated LZMA-Alone/big-endian decoding; metadata-based Decimal scaling; UTC range filtering; payload-hash provenance; and distinct no-data, transport, corruption, and unsupported-configuration handling. Tiny generated binary fixtures and HTTP doubles keep all tests offline. Phase 2 contracts and runtime dependencies are unchanged. Storage and bar aggregation are supplied by Phase 4 below.
 
 Deliverables: selected provider/format adapter, licensing notes, raw-source provenance, import configuration, error handling, and small legal fixtures. Verify ingestion with reproducible inputs; do not imply screenshots are historical datasets.
 
 ## 4. Data validation, resampling, and storage
 
 Purpose: produce reliable, versioned research datasets.
+
+Implemented: immutable typed quality summaries distinguishing exact duplicates/repeated timestamps, ordering and consistency errors, empty warnings, configurable consecutive-event gap thresholds, and caller-scheduled coverage gaps; opt-in stable normalization with explicit duplicate policies; strict causal UTC bid/ask/mid OHLC and bar coarsening with missing-data policies and no invented quote volume; complete deterministic dataset metadata/provenance; transactional standard-library SQLite storage for validated datasets with lossless typed reads and integrity checks; offline behavioral and pipeline tests. Pure Python canonical sequences are the initial representation; no dependency is introduced. Missing observations/bars are never fabricated. Pandas versus Polars, session/DST calendar aggregation, raw payload retention, columnar export, and PostgreSQL remain open or deferred. Phase 5 and subsequent phases remain unimplemented.
 
 Deliverables: duplicate/gap/OHLC/timestamp checks, explicit missing-data policy, causal resampling and bar-availability semantics, normalized storage adapter, dataset identifiers, and quality reports. Choose dataframe and file formats here. A local storage adapter can precede PostgreSQL.
 

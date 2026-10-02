@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–3 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, and the isolated Dukascopy historical quote-ingestion adapter described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–4 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, and Phase 4 validation, UTC resampling, and local dataset storage described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2 and 3 implement market-data domain contracts and historical quote ingestion; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -30,7 +30,7 @@ All observation timestamps require timezone information and normalize to UTC. Pr
 
 Missing volume is None, distinct from zero. Supplied volume must be finite and nonnegative, accompanied by its unit type; tick-count volume must be integral. Quantity increments, pip sizes, lot sizes, and contract multipliers are metadata, not sizing or valuation calculations.
 
-Timeframe labels do not generate schedules or enforce fixed elapsed durations: explicit bar endpoints support session/DST differences. Instrument and source/dataset identifiers are opaque references; lookup consistency, duplicate/gap detection, price-grid alignment, and dataset quality checks belong to later phases. Phase 3 adds historical quote ingestion through the provider boundary below. No resampling, calendar adapter, or storage implementation exists yet.
+Timeframe labels do not generate schedules or enforce fixed elapsed durations: explicit bar endpoints support session/DST differences. Instrument and source/dataset identifiers are opaque references. Phase 3 adds historical quote ingestion; Phase 4 adds dataset quality checks, UTC resampling, and local storage below. Calendar adapters, source registry lookup, and price-grid alignment remain deferred.
 
 ## Implemented Phase 3 ingestion
 
@@ -67,7 +67,132 @@ Fetching is lazy and visits only intersecting UTC hours. It preserves record ord
 
 Users must comply with Dukascopy's applicable historical-data terms/licensing, including any restrictions on use or redistribution. Public accessibility does not automatically grant redistribution rights. Tests construct tiny synthetic binary payloads; no provider dataset is checked into the repository.
 
-Phase 4 still owns dataset-wide quality checks, chronological/duplicate/gap validation, missing-period reports, resampling/OHLC aggregation, and normalized storage. This adapter has no dataframe processing, filesystem persistence, backtesting, or execution behavior.
+Phase 4 implements dataset-wide quality checks, chronological/duplicate/gap validation, missing-period reports, resampling/OHLC aggregation, and normalized storage outside this provider adapter. This adapter has no dataframe processing, filesystem persistence, backtesting, or execution behavior.
+
+## Implemented Phase 4 datasets
+
+The provider-neutral public API adds DataQualityReport, ValidationOptions,
+validate_dataset, normalize_observations, ResampleRequest/resample,
+DatasetMetadata, DatasetStore, and SQLiteDatasetStore. Quality types stay in
+validation.py because the report and checks form one small contract. The existing
+Phase 4 test_pipeline.py holds focused behavioral cases and the synthetic provider
+integration, keeping shared fixtures and end-to-end coverage together. No later
+functional layer or provider rewrite is part of this implementation.
+
+### Quality and explicit normalization
+
+DataQualityReport is a strict immutable Pydantic model containing observation,
+exact-duplicate, repeated-timestamp, adjacent out-of-order, non-monotonic, and gap
+counts; chronological first/last event timestamps; warnings/errors; validity;
+and whether gap checks ran. Every observation is revalidated, including objects
+made by unchecked Pydantic construction/copy. Existing domain validation checks
+OHLC, finite positive prices, quote bounds, volume units, timezone awareness,
+and availability. Sequence checks cover instrument identity, mixed quote/bar
+kinds, mixed bar price basis/timeframe, and bar overlap. Inputs are not mutated,
+sorted, repaired, deduplicated, or filled during validation.
+
+An exact duplicate includes all canonical fields, including provenance and
+availability. Counts measure occurrences after the first matching observation;
+repeated timestamps are counted separately. out_of_order_count counts adjacent
+valid event-time decreases; non_monotonic_count counts adjacent <= comparisons.
+Repeated quote timestamps are errors even if prices differ: resampling rejects
+ambiguous event ordering without a source sequence. Source homogeneity defaults
+on. Dataset homogeneity defaults off because Dukascopy versions hourly files
+independently; ValidationOptions can enforce it or an explicit source/dataset ID.
+Empty input is an explicit warning with no fabricated timestamps or coverage.
+
+Quotes are irregular events. ValidationOptions.max_gap optionally sets the
+maximum consecutive event-time separation, with gaps strictly greater than the
+positive threshold reported as errors. No tick cadence is assumed. Optional
+expected_starts provides a caller-owned bar/session schedule, reporting missing
+and unexpected starts including leading/trailing gaps. Closures must be excluded
+by the caller. Without either option, gaps_checked is false. These checks are
+quality diagnostics, not proof of provider completeness. Price-grid alignment
+and calendar/session adapters remain deferred.
+
+normalize_observations is opt-in, returns a tuple, and performs a stable time
+sort. DuplicatePolicy.KEEP/REJECT/REMOVE affects exact duplicates only; REJECT
+is the default. Distinct observations at identical timestamps remain in original
+relative order and are still rejected by resampling. No input sequence is mutated.
+
+### UTC causal resampling
+
+ResampleRequest requires an instrument, explicit price basis, timeframe, aware
+start/end timestamps, and MissingDataPolicy. The implementation uses fixed UTC,
+left-labelled [start, end) intervals. M1/M5/M15/M30/H1/H4 use minute/hour alignment;
+D1 uses midnight UTC and the optional W1 convention is Monday 00:00 UTC with a
+fixed seven-day duration. Daily/weekly bars describe UTC windows only, never
+Forex sessions, holidays, or exchange calendar days. No machine-local timezone
+is used. Request endpoints must align to whole target intervals; partial request
+edges and out-of-window observations are rejected.
+
+BID and ASK select quote prices; MID is per-event Decimal (bid + ask) / 2. Quotes
+cannot produce TRADE bars. OHLC uses first observation, maximum, minimum, and last
+observation respectively. A quote at a right boundary belongs to the next bar.
+Input must pass structural/chronological validation; resampling never silently
+normalizes it. Quote-derived volume and volume_type are both None because the
+canonical quote has no volume. No observation counts are presented as volume.
+
+Empty bins are omitted or rejected by the explicit policy. No carry-forward,
+forward-fill, interpolation, or invented observations/bars occurs. A nonempty
+quote bin alone does not prove complete coverage. Optional bar coarsening retains
+the existing Phase 4 behavior: a single price basis/timeframe/source, integral
+coarsening, aligned fixed-duration inputs, and contiguous complete coverage.
+Partial bar groups are omitted or rejected, never bridged. There is no upsampling
+or splitting. Volumes sum only when every member supplies compatible units;
+missing volume remains None and conflicting units are rejected.
+
+The exact availability rule is:
+
+`available_at = max(bar.end_time, *(member.available_at for member in members))`
+
+No completed bar is usable before interval end; delayed input availability
+propagates. Decimal calculations use a local context sized to input values,
+independent of caller precision. The derived observation dataset_id hashes the
+utc-ohlc-v2 transformation, request parameters, and ordered canonical inputs,
+including their originating dataset references. Future bins cannot alter earlier
+OHLC or availability, though the full dataset content identity can change.
+
+### Local storage and reproducibility
+
+Canonical Python model sequences are sufficient here; no dataframe dependency
+is introduced. Pandas versus Polars and columnar export remain open pending
+measured performance needs. SQLite is the selected portable single-file local
+format: Python's standard-library sqlite3 provides transactions across records,
+metadata and reports, preventing partially published datasets without adding
+libraries or a database service. The configured path must have an existing parent
+directory. No PostgreSQL, cloud adapter, pickle, or network access is involved.
+
+DatasetMetadata retains instrument metadata, source/provider, instrument_id,
+quote/bar type, timeframe/price_type for bars, record count, UTC bounds, created_at,
+transformation identity/version, optional parent IDs, validation policy/schedule,
+and caller-supplied description/licensing. Saving derives fields from observations
+and rejects conflicting declarations. Quote bounds mean first and last events
+(inclusive); bar bounds mean first start through last end (exclusive end). Empty
+datasets require explicit source/type and, for bars, timeframe/price basis; their
+bounds can be absent or explicitly supplied. Empty warnings may be retained, but
+all quality errors reject a save before the file is opened.
+
+SQLite separates metadata/reports from ordered typed observation columns.
+Decimal values use TEXT, UTC datetimes use ISO strings, and enums retain their
+wire values. Each record's source_id/dataset_id is preserved. The stored dataset
+identity is separate: SHA-256 of schema version, canonical serialized metadata,
+ordered records, and quality report, excluding dataset_id itself and created_at.
+Creation time is audit metadata, not part of reproducible identity or its digest
+integrity guarantee. The first save's timestamp is retained for repeated saves.
+Changed records, transformation versions, parents, or other content metadata
+produce a new identity. Parent IDs are references, not an enforced lineage graph;
+callers save source observations separately and record exact transformation
+parameters when they need a reproducible derivation chain.
+
+A dataset save is one SQLite transaction. Failed insertions roll back the entire
+version. Existing identical versions are verified and returned without overwrite;
+corrupted versions are rejected. Loads use a read-only consistent snapshot and
+verify schema, typed metadata/report, positions/count, canonical models, quality,
+derived metadata consistency, and content hash. Unsupported schema versions are
+rejected without migration. There is no import-time file access, deletion API,
+raw .bi5 payload retention, or redistribution authorization. Local artifacts stay
+outside Git; all persistence tests use temporary directories and synthetic data.
 
 ## Planned system flow
 
@@ -266,4 +391,4 @@ Do not implement evolution loops, self-modifying code, autonomous promotions, or
 
 ## Open decisions
 
-Additional historical providers and provider-specific redistribution permissions; Pandas versus Polars; event-driven versus vectorized engine internals; historical storage formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
+Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); event-driven versus vectorized engine internals; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
