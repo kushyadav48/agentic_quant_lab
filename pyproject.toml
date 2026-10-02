@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Foundation for an AI-assisted quantitative research and paper-trading platform."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["pydantic>=2.10,<3"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]

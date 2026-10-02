@@ -1,4 +1,5 @@
-"""Agentic Quant Research & Trading Lab package foundation.
+"""Agentic Quant Research & Trading Lab.
 
-Quantitative, AI, API, and trading functionality is not implemented yet.
+Provider-neutral market-data contracts are available in quantlab.data.
+Trading engines and application integrations remain planned.
 """

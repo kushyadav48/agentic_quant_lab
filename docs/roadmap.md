@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** This foundation is the first milestone. Phases 2–25 are planned; no functional capability is implemented. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1 and 2 are implemented: the documentation/package foundation and strict market-data domain contracts with tests. Phases 3–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -13,6 +13,8 @@ Deliverables: README, architecture source of truth, roadmap, minimal src-layout 
 ## 2. Market-data domain models
 
 Purpose: establish market-neutral contracts before choosing ingestion implementation.
+
+Implemented: strict Pydantic Instrument, TradingCalendar reference, MarketBar, and MarketQuote models; AssetClass, PriceType, Timeframe, and VolumeType enums; Forex metadata checks; timezone-aware UTC observations; Decimal prices/quantities; and contract tests. Calendar schedule resolution, dataset-wide validation, ingestion, and storage remain future work.
 
 Deliverables: typed instrument, asset-class, timestamp, price/quantity, currency, calendar, and observation models, with Forex metadata and schema tests. Add Pydantic if selected for these contracts; document bid/ask/mid semantics and extensibility.
 

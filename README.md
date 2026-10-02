@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — documentation and package foundation only.** No market-data ingestion, strategy engine, backtesting, financial metrics, AI integration, agents, risk engine, API, or dashboard is implemented. This repository currently contains the architectural plan and a minimal Python package skeleton.
+**Status: early development — Phase 2 market-data domain models implemented.** The repository contains the documentation/package foundation and strict provider-neutral instrument, calendar-reference, OHLC-bar, and bid/ask-quote contracts with validation tests. No market-data ingestion, strategy engine, backtesting, financial metrics, AI integration, agents, risk engine, API, or dashboard is implemented.
 
 ## Planned capabilities
 
@@ -28,7 +28,7 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 
 | Area | Direction | Current state |
 | --- | --- | --- |
-| Core | Python 3.11+, Pydantic for typed domain models | Python package skeleton; Pydantic not installed |
+| Core | Python 3.11+, Pydantic for typed domain models | Strict Pydantic market-data contracts implemented |
 | Quant/data | NumPy, Pandas and/or Polars, SciPy; Statsmodels where useful | Planned; dataframe choice remains open |
 | ML | scikit-learn, LightGBM, XGBoost, Optuna, experiment tracking | Planned |
 | AI | Provider-agnostic text/vision LLM adapters, LangGraph, MCP | Planned |
@@ -36,7 +36,7 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 | Frontend | Separate professional web dashboard, likely React/Next.js | Planned; final framework not selected |
 | Engineering | pytest, Git, structured logging; Docker and CI later | pytest development extra and existing Git metadata |
 
-The package has no runtime dependencies at this stage. Dependencies will be introduced only when implemented functionality needs them.
+Pydantic is the sole runtime dependency at this stage. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
 
 ## Repository structure
 
@@ -51,12 +51,19 @@ agentic_quant_lab/
 │   └── roadmap.md
 ├── src/
 │   └── quantlab/
-│       └── __init__.py
+│       ├── __init__.py
+│       └── data/
+│           ├── __init__.py
+│           ├── enums.py
+│           └── models.py
 └── tests/
-    └── __init__.py
+    ├── __init__.py
+    └── data/
+        ├── __init__.py
+        └── test_models.py
 ```
 
-Future layers are architectural concepts, not empty modules in the current tree. Local data, uploads, generated artifacts, databases, logs, and secrets belong outside version control.
+The implemented market-data contracts are exported from `quantlab.data`. All other future layers remain architectural concepts, not empty modules in the current tree. Local data, uploads, generated artifacts, databases, logs, and secrets belong outside version control.
 
 ## Development setup
 
@@ -71,7 +78,7 @@ python -c "import quantlab"
 
 For PowerShell, activation is `.venv\Scripts\Activate.ps1`; for POSIX shells, use `source .venv/bin/activate`.
 
-Once behavioral tests exist, run `python -m pytest`. Currently there are no test cases, so pytest reports no tests collected and exits with code 5. The import check above verifies the installed package skeleton, not any quantitative behavior.
+Run `python -m pytest` for market-data contract tests. These cover Forex conventions, strict field types, UTC normalization, OHLC and quote bounds, volume units, immutability, and JSON round trips. The import check above verifies the installed package, not any trading functionality.
 
 The `.env.example` file contains guidance only: no environment configuration is consumed yet and no credentials are required.
 
