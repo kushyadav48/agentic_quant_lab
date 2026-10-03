@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–8 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phases 9–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–9 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phases 10–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -67,7 +67,7 @@ dependencies are added. See [backtesting-engine.md](backtesting-engine.md).
 
 Deliverables: deterministic bar replay, signal/fill/position lifecycle, fixed research
 sizing, immutable trade/equity artifacts and explicit causal timing. Phase 8 extends
-spread/slippage/cost behavior below; Phase 9 remains planned for analytics.
+spread/slippage/cost behavior below; Phase 9 supplies separate analytics below.
 Cost-free fixtures establish mechanics, not realistic performance claims.
 
 ## 8. Spread, slippage, and cost modeling
@@ -88,13 +88,25 @@ See [execution formulas, invariants and limitations](execution-cost-model.md).
 This completed phase is deliberately limited to deterministic fixed-cost research
 execution. Latency simulation, order types, partial fills, liquidity/impact,
 tick rounding, financing, FX conversion and intrabar stop/target semantics remain
-deferred. Phase 9 analytics and later roadmap phases are not implemented.
+deferred. Phase 9 supplies separate analytics below; subsequent roadmap phases remain planned.
 
 ## 9. Performance analytics
 
 Purpose: derive authoritative performance results from simulated account/trade records.
 
-Deliverables: deterministic return/P&L/drawdown/trade/exposure statistics, documented annualization and currency conventions, defined handling of undefined metrics, and reproducible result artifacts. Verify against hand-computed small cases.
+Implemented: separate quantlab.analytics package consuming BacktestResult; immutable
+strict definition-versioned reports; authoritative capital-relative account returns;
+net closed-trade classification/ratios and elapsed holding times; initial-baseline
+equity returns; population volatility and rigorous per-period/explicitly annualized
+Sharpe; signed drawdown series, independent amount/percentage maxima, and observed
+recovered/unrecovered episodes. Undefined metrics use None. Boundary revalidation,
+account/equity consistency checks, isolated 34-digit Decimal contexts, offline
+hand-computed and real-engine tests preserve deterministic behavior and execution.
+No dependency is added. See [performance-analytics.md](performance-analytics.md).
+
+Exposure models, calendar/currency inference, CAGR, Sortino/Calmar, strategy ranking
+and robustness/risk work are deferred. Historical metrics do not establish strategy
+quality or persistent profitability. Phase 10 and later phases remain planned.
 
 ## 10. Out-of-sample, walk-forward, and robustness validation
 

@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–8 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–9 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs and the Phase 9 performance analytics layer described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -243,7 +243,7 @@ Historical close marks are retrospective reporting; complete bar availability ga
 decisions, not the assumed next-open fill.
 
 [Backtesting contracts and examples](backtesting-engine.md) define causality,
-validation, accounting and limitations. Risk and performance analytics remain later phases.
+validation, accounting and limitations. Phase 9 analytics consumes these completed results separately; risk remains planned.
 
 ## Implemented Phase 8 execution costs
 
@@ -269,6 +269,27 @@ explicitly. Existing quantity-step checks, zero-cost economics, causality,
 no same-open reversal, input immutability and network isolation are preserved.
 No microstructure, financing, account-currency conversion, portfolio, risk or
 analytics framework is introduced. See [the permanent cost specification](execution-cost-model.md).
+
+## Implemented Phase 9 performance analytics
+
+quantlab.analytics consumes BacktestResult without changing simulation or execution.
+Frozen strict PerformanceReport records strategy/version/digest, instrument/timeframe/
+price basis, explicit analytics config and authoritative ending account values.
+Nested trade statistics use closed net_pnl only; account returns use final equity,
+including open-position marks and already-paid entry explicit costs.
+
+The layer reports capital-relative return, consecutive equity returns (including
+the first mark), population volatility, per-period Sharpe and optional explicitly
+annualized Sharpe. It never infers a calendar factor. Drawdowns include the initial
+capital peak and retain both independent maxima and observed recovery episodes.
+Holding and underwater durations use elapsed timestamp differences. Undefined
+metrics use None, including affected return periods after nonpositive prior equity.
+
+The public boundary revalidates nested input contracts, equity chronology, account
+identities and ending mark agreement without repairing or replaying input. Fresh
+34-digit ROUND_HALF_EVEN Decimal contexts isolate caller settings. No dependencies,
+network activity, randomness, risk controls, robustness assessment or strategy
+scoring are added. See [the metric specification](performance-analytics.md).
 
 ## Planned system flow
 
@@ -359,7 +380,13 @@ Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simpl
 
 ### Performance analytics
 
-Calculate P&L, returns, drawdown, trade statistics, exposure, and risk-adjusted metrics using deterministic code. Define valuation currency, annualization conventions, return frequency, financing and fee treatment, benchmark assumptions, and handling of undefined statistics. Preserve metric definitions and engine versions alongside values. An LLM may explain these results, but cannot replace or silently recompute them.
+Phase 9 implements account returns, net closed-trade statistics, holding durations,
+population equity-return volatility, drawdowns/recovery and Sharpe over completed
+BacktestResult output. Reports preserve definition_version and explicit config;
+undefined ratios use None and annualization requires a caller factor. Research P&L
+units and execution-cost accounting are inherited unchanged. Exposure, benchmarks,
+additional risk-adjusted metrics and account-currency valuation remain future work.
+An LLM may explain results but cannot replace or silently recompute them.
 
 ### Research validation
 

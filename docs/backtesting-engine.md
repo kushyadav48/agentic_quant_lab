@@ -10,8 +10,10 @@ closed trades, an optional final position, and a research equity curve.
 
 The engine supports LONG, SHORT and BOTH, fixed quantity, one position, declarative
 rules and next-open market fills. It adds no dependencies or network access.
-Performance ratios, drawdown, optimization, portfolio allocation, broker execution,
-paper trading, risk models and microstructure realism belong to later phases.
+Phase 9 performance ratios and drawdowns are computed separately from completed
+BacktestResult output; see [performance analytics](performance-analytics.md).
+Optimization, portfolio allocation, broker execution, paper trading, risk models
+and microstructure realism remain planned.
 Phase 8 adds deterministic fixed execution costs; see [the full cost specification](execution-cost-model.md).
 
 ## Entry point and input contracts
@@ -247,5 +249,7 @@ isolated Decimal contexts, including during JSON validation.
 No partial fills, advanced orders, stop/target execution, latency simulation,
 financing, market impact, margin, leverage, FX conversion or tick-price rounding
 exists. Explicit cash costs use Phase 7 research P&L units. Phase 9 analytics
-remain planned. See [execution-cost-model.md](execution-cost-model.md) for exact
-formulas, combined examples, serialized records, equity and precision restrictions.
+consumes completed output in a separate package; see
+[the metric specification](performance-analytics.md). See
+[execution-cost-model.md](execution-cost-model.md) for exact formulas, combined
+examples, serialized records, equity and precision restrictions.

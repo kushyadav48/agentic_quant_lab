@@ -168,5 +168,7 @@ partial fills, limit/stop orders, latency simulation, stops/targets, financing,
 overnight swaps, borrow costs, margin, leverage, currency conversion or portfolio.
 Prices are not rounded to Instrument.tick_size; tick_size and contract_multiplier
 retain their existing metadata role. Research equity is not a brokerage cash ledger.
-Phase 9 analytics, walk-forward validation, risk, ML, agents, paper trading and APIs
-remain unimplemented. Fixed execution costs alone do not establish live realism.
+Phase 9 analytics consumes completed BacktestResult in a separate layer; see
+[net performance formulas and open-position policy](performance-analytics.md).
+Walk-forward validation, risk, ML, agents, paper trading and APIs remain planned.
+Fixed execution costs alone do not establish live realism.
