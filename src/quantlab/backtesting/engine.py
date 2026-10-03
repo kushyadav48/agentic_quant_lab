@@ -10,6 +10,7 @@ from quantlab.strategies import ApprovalState, MarketField, MarketOperand, Strat
 from .enums import EvaluationResult as E, PositionSide, SignalAction
 from .errors import BacktestCompatibilityError, BacktestInputError, BacktestSignalConflictError
 from .evaluation import RuleEvaluator
+from .execution import _next_open_fill, validate_execution_compatibility
 from .models import BacktestConfig, BacktestResult, ClosedTrade, EquityPoint, Fill, Position, Signal
 
 
@@ -103,12 +104,6 @@ def _validate_inputs(bars: Iterable[MarketBar], features: Iterable[FeatureObserv
     return records, tuple(observations)
 
 
-def _next_open_fill(signal: Signal, bar: MarketBar, quantity: Decimal) -> Fill:
-    """Phase 8 can extend this boundary with explicit prices and costs."""
-    return Fill(action=signal.action, signal_time=signal.signal_time,
-                execution_time=bar.start_time, execution_price=bar.open, quantity=quantity)
-
-
 def _pnl(position: Position, price: Decimal) -> Decimal:
     change = (price - position.entry_price if position.side is PositionSide.LONG
               else position.entry_price - price)
@@ -121,7 +116,7 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
     """Replay approved single-instrument intent; never approve or mutate inputs.
 
     A complete bar's availability gates its close decision. Fills at the following
-    input bar's open are a declared zero-cost execution assumption, independent of
+    input bar's open are a declared deterministic execution assumption, independent of
     that complete bar's later publication. Marks are retrospective close prices.
     """
     try:
@@ -136,6 +131,7 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
     if (numerator * step_denominator) % (denominator * step_numerator):
         raise BacktestInputError("quantity must be a multiple of instrument.quantity_increment")
     records, observations = _validate_inputs(bars, features, strategy, instrument, requests)
+    validate_execution_compatibility(records[0].price_type, config.execution_costs)
     evaluator = RuleEvaluator(strategy, records, observations)
     signals: list[Signal] = []
     fills: list[Fill] = []
@@ -148,19 +144,32 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
     with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
         for index, bar in enumerate(records):
             if pending is not None:
-                fill = _next_open_fill(pending, bar, config.quantity)
+                fill = _next_open_fill(pending, bar, config.quantity, config.execution_costs)
                 fills.append(fill)
                 if fill.action in (SignalAction.ENTER_LONG, SignalAction.ENTER_SHORT):
                     position = Position(
                         side=PositionSide.LONG if fill.action is SignalAction.ENTER_LONG else PositionSide.SHORT,
                         quantity=fill.quantity, entry_signal_time=fill.signal_time,
-                        entry_time=fill.execution_time, entry_price=fill.execution_price)
+                        entry_time=fill.execution_time, entry_price=fill.execution_price,
+                        entry_reference_price=fill.reference_price, entry_costs=fill.costs)
+                    realized = realized - fill.costs.commission - fill.costs.fees
                 else:
                     assert position is not None
                     gross = _pnl(position, fill.execution_price)
-                    trades.append(ClosedTrade(**position.model_dump(), exit_signal_time=fill.signal_time,
-                        exit_time=fill.execution_time, exit_price=fill.execution_price, gross_pnl=gross))
-                    realized += gross
+                    reference_change = (fill.reference_price - position.entry_reference_price
+                        if position.side is PositionSide.LONG
+                        else position.entry_reference_price - fill.reference_price)
+                    costs = position.entry_costs.plus(fill.costs)
+                    try:
+                        trades.append(ClosedTrade(**position.model_dump(), exit_signal_time=fill.signal_time,
+                            exit_time=fill.execution_time, exit_price=fill.execution_price, gross_pnl=gross,
+                            exit_reference_price=fill.reference_price, exit_costs=fill.costs,
+                            reference_gross_pnl=reference_change * position.quantity,
+                            net_pnl=gross - costs.commission - costs.fees))
+                    except ValidationError as exc:
+                        raise BacktestInputError(f"trade accounting cannot reconcile at precision 34: {exc}") from exc
+                    # Entry explicit costs were already recognized at the entry open.
+                    realized = realized + gross - fill.costs.commission - fill.costs.fees
                     position = None
                 pending = None
             action = None
@@ -194,4 +203,5 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
         initial_capital=config.initial_capital, quantity=config.quantity,
         signals=tuple(signals), fills=tuple(fills), closed_trades=tuple(trades),
         open_position=position, equity_curve=tuple(curve), realized_pnl=realized,
-        unrealized_pnl=unrealized, final_equity=curve[-1].equity)
+        unrealized_pnl=unrealized, final_equity=curve[-1].equity,
+        execution_costs=config.execution_costs)

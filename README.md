@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–7 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Execution costs, financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–8 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. Financial metrics, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -171,13 +171,18 @@ strategy compatibility](docs/feature-engine.md). Feature computation does not ex
 
 ## Deterministic research backtesting
 
-Import BacktestConfig and run_backtest from quantlab.backtesting. The engine
+Import BacktestConfig, ExecutionCostConfig and run_backtest from quantlab.backtesting. The engine
 requires exact-version APPROVED strategy content and validated canonical bars,
 consumes supplied Phase 6 features, and evaluates rules at bar close with fills
 at the following input bar open. Frozen results retain signals, fills, closed
 trades, any final open position, and Decimal research equity. Fixed quantity and
-zero costs are explicit assumptions; stop/target, session and external sizing
-intent are rejected. See [contracts, timing and examples](docs/backtesting-engine.md).
+zero default costs preserve the Phase 7 baseline. Optional immutable execution_costs
+configure price-basis-aware spread, adverse fixed slippage, per-unit commission and
+per-fill fees. Entry cash costs affect realized account P&L immediately; spread and
+slippage affect execution prices. TRADE bars reject nonzero synthetic spread.
+Stop/target, session and external sizing intent are rejected. See
+[contracts, timing and examples](docs/backtesting-engine.md) and
+[execution formulas and accounting](docs/execution-cost-model.md).
 
 ## Roadmap summary
 

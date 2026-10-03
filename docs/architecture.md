@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–7 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–8 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -238,13 +238,37 @@ retain deterministic identities and Decimal financial values. Research equity is
 initial capital + realized P&L + close-marked unrealized P&L; this does not debit
 entry capital or model brokerage cash/margin. Arithmetic uses an isolated 34-digit
 Decimal context. Quantity must respect existing quantity_increment metadata.
-A small next-open fill helper owns the zero-cost execution price boundary for
-Phase 8. Historical close marks are retrospective reporting; complete bar
-availability gates decisions, not the assumed next-open fill.
+Phase 8 extends the next-open fill boundary in execution.py, described below.
+Historical close marks are retrospective reporting; complete bar availability gates
+decisions, not the assumed next-open fill.
 
 [Backtesting contracts and examples](backtesting-engine.md) define causality,
-validation, accounting and limitations. Execution costs, risk and performance
-analytics remain later phases.
+validation, accounting and limitations. Risk and performance analytics remain later phases.
+
+## Implemented Phase 8 execution costs
+
+BacktestConfig nests a frozen strict ExecutionCostConfig with zero defaults.
+execution.py owns only next-open price/cost calculation; RuleEvaluator remains
+unchanged, and engine.py owns position/accounting updates. The result retains
+the execution configuration. Fills expose causal reference opens, actual prices,
+price-unit adjustments and immutable CostBreakdown components. Positions retain
+entry references/costs; trades expose reference gross, execution gross and net P&L.
+
+MID buys/sells use half-spread; BID buys and ASK sells use full spread, while
+BID sells and ASK buys use none. TRADE bars reject nonzero synthetic spread.
+Fixed adverse slippage increases buys and decreases sells. Commission scales
+with quantity; fixed fees apply per actual fill. Spread/slippage affect prices
+and are never separately debited from gross P&L. Entry explicit cash costs
+are recognized immediately; exits realize execution P&L and debit only exit cash costs.
+Equity remains initial capital + realized account P&L + close-marked unrealized P&L.
+Open positions have no fabricated exit costs; final unfilled signals incur none.
+
+Cost arithmetic and validators use isolated 34-digit ROUND_HALF_EVEN Decimal
+contexts. Price effects/accounting that cannot reconcile at this precision fail
+explicitly. Existing quantity-step checks, zero-cost economics, causality,
+no same-open reversal, input immutability and network isolation are preserved.
+No microstructure, financing, account-currency conversion, portfolio, risk or
+analytics framework is introduced. See [the permanent cost specification](execution-cost-model.md).
 
 ## Planned system flow
 
@@ -327,11 +351,11 @@ Compute deterministic, timestamped features from validated historical observatio
 
 ### Backtesting and execution simulation
 
-Phase 7 implements approved-specification signals, next-open fills, positions, closed trades and research equity through a deterministic bar loop. Cash balances and order/execution realism remain future work. Signal formation is separate from fill timing; close-time observations cannot justify an earlier fill. See the implemented Phase 7 contract above.
+Phase 7 implements approved-specification signals, next-open fills, positions, closed trades and research equity through a deterministic bar loop. Phase 8 adds deterministic price-basis-aware spread, adverse fixed slippage, commission and fees. Cash balances and microstructure realism remain future work. Signal formation is separate from fill timing; close-time observations cannot justify an earlier fill. See the implemented Phase 7 contract above.
 
-Execution policies will model bid/ask spread, slippage, fees, latency assumptions, order types, minimum sizes, tick/lot rounding, and market availability. Forex financing/rollover and currency conversion must be explicit when relevant. If both stop and target fall inside a bar and their order is unknown, use a documented conservative policy or reject the ambiguous scenario; do not infer a favorable path.
+Current execution policies model configured spread, slippage, commission and fees at the causal next open. Future policies may add latency assumptions, order types, minimum sizes, tick/lot rounding, and market availability. Forex financing/rollover and currency conversion must be explicit when relevant. If both stop and target fall inside a bar and their order is unknown, use a documented conservative policy or reject the ambiguous scenario; do not infer a favorable path.
 
-Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simple research equity. Account constraints and a reusable risk engine remain later work before paper trading. Cost-free engine fixtures may test mechanics, but results cannot be presented as realistic research until the cost-model phase is complete.
+Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simple research equity. Account constraints and a reusable risk engine remain later work before paper trading. Cost-free fixtures test mechanics; Phase 8 makes cost assumptions auditable, but fixed costs alone do not establish live execution realism.
 
 ### Performance analytics
 

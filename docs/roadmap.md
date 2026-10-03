@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–7 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phases 8–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–8 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phases 9–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -66,15 +66,29 @@ performance analytics. All 591 tests pass, including 167 Phase 7 cases. No
 dependencies are added. See [backtesting-engine.md](backtesting-engine.md).
 
 Deliverables: deterministic bar replay, signal/fill/position lifecycle, fixed research
-sizing, immutable trade/equity artifacts and explicit causal timing. Phase 8 remains
-planned for spread/slippage/cost behavior; Phase 9 remains planned for analytics.
+sizing, immutable trade/equity artifacts and explicit causal timing. Phase 8 extends
+spread/slippage/cost behavior below; Phase 9 remains planned for analytics.
 Cost-free fixtures establish mechanics, not realistic performance claims.
 
 ## 8. Spread, slippage, and cost modeling
 
 Purpose: make execution assumptions explicit and useful for research.
 
-Deliverables: bid/ask policies, configurable spread/slippage/fees, latency/timing assumptions, size/tick rounding, Forex financing and currency-conversion conventions where relevant, and intrabar ambiguity handling. Record assumptions per run and verify cost effects using controlled examples.
+Implemented: frozen strict zero-default ExecutionCostConfig; MID/BID/ASK-aware
+synthetic spread with explicit TRADE incompatibility; adverse fixed slippage;
+quantity-based commission and fixed per-fill fees; causal reference/execution
+prices and immutable cost breakdowns; reference gross, execution gross and net
+trade P&L; immediate entry-cost recognition and research equity accounting.
+Next-open timing, delayed-bar decision gating, final unfilled signals, open final
+positions, no same-open reversal, quantity increments, isolated Decimal arithmetic
+and zero-cost economics remain intact. Exact hand-computed long/short trades and
+causal replay tests cover all cost components without network access or new dependencies.
+See [execution formulas, invariants and limitations](execution-cost-model.md).
+
+This completed phase is deliberately limited to deterministic fixed-cost research
+execution. Latency simulation, order types, partial fills, liquidity/impact,
+tick rounding, financing, FX conversion and intrabar stop/target semantics remain
+deferred. Phase 9 analytics and later roadmap phases are not implemented.
 
 ## 9. Performance analytics
 

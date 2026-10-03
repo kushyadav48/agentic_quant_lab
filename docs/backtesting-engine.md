@@ -2,7 +2,7 @@
 
 ## Purpose and scope
 
-Phase 7 provides a small offline bar-by-bar research simulator in
+Phases 7–8 provide a small offline bar-by-bar research simulator in
 quantlab.backtesting. It consumes canonical MarketBar sequences, supplied
 Phase 6 FeatureObservation values, an approved immutable StrategySpecification,
 and a BacktestConfig. It returns a frozen BacktestResult with signals, fills,
@@ -11,7 +11,8 @@ closed trades, an optional final position, and a research equity curve.
 The engine supports LONG, SHORT and BOTH, fixed quantity, one position, declarative
 rules and next-open market fills. It adds no dependencies or network access.
 Performance ratios, drawdown, optimization, portfolio allocation, broker execution,
-paper trading, risk models and execution realism belong to later phases.
+paper trading, risk models and microstructure realism belong to later phases.
+Phase 8 adds deterministic fixed execution costs; see [the full cost specification](execution-cost-model.md).
 
 ## Entry point and input contracts
 
@@ -165,9 +166,11 @@ duplicate entry. After an open-time close, a new entry may be signalled at that
 bar's future close and fill at the following open. Closing and reversing at the
 same open is unsupported.
 
-Public Position captures side, quantity, entry signal time, execution time and
-price. ClosedTrade retains those fields plus exit signal/time/price and gross
-P&L. Public objects are frozen; only tightly scoped local loop state changes.
+Public Position captures side, quantity, entry signal time, execution time, actual
+entry price, entry reference open and entry costs. ClosedTrade retains those
+fields plus exit signal/time/actual and reference price, exit costs, reference
+gross P&L, execution gross P&L and net P&L. Fill exposes both prices,
+spread/slippage price adjustments and CostBreakdown. Public objects are frozen; only tightly scoped local loop state changes.
 
 ## Research accounting
 
@@ -177,7 +180,16 @@ For a fixed quantity Q:
 - SHORT unrealized P&L = (entry price - close mark) * Q.
 - LONG gross closed P&L = (exit price - entry price) * Q.
 - SHORT gross closed P&L = (entry price - exit price) * Q.
+- net closed P&L = gross closed P&L - entry/exit commission - entry/exit fees.
+- realized account P&L subtracts entry commission/fees at the actual entry fill,
+  adds gross P&L on exit and subtracts exit commission/fees then.
 - equity = initial_capital + cumulative_realized_pnl + current_unrealized_pnl.
+
+Spread/slippage are embedded in execution prices and are never subtracted again
+from gross P&L. ClosedTrade.reference_gross_pnl uses the two next-open references;
+subtracting both fills' spread/slippage/commission/fees gives net_pnl. While a
+position is open, unrealized P&L uses the actual entry price and the unchanged
+causal close-mark reporting convention. No hypothetical exit costs are deducted.
 
 Each processed bar records one EquityPoint at its end, after pending execution
 and close-time rule evaluation. Flat unrealized P&L is zero. Capital is not debited
@@ -209,20 +221,31 @@ Closed gross P&L is (90 - 100) * 2 = -20. A short entered at 100 and marked
 at 90 has unrealized P&L (100 - 90) * 2 = 20; closing at 90 realizes 20.
 The tests use these exact Decimal examples and independent causal prefixes.
 
-## Errors, limitations and Phase 8 boundary
+## Errors, limitations and execution boundary
 
 BacktestError has three focused subclasses: BacktestCompatibilityError for
 unsupported strategy intent/approval, BacktestInputError for malformed or
 inconsistent data/config, and BacktestSignalConflictError for simultaneous entries.
 Constructing invalid public models directly raises Pydantic ValidationError.
 
-Every Phase 7 fill is exactly the next supplied bar open with zero spread,
-slippage, commissions and fees. Bid/ask-based bars retain their declared price
-basis but do not simulate switching bid/ask sides. No partial fills, advanced
-orders, stop/target execution, financing, market impact, margin or leverage exists.
+Zero-cost defaults preserve Phase 7 economics and exact next-open execution prices.
+BacktestConfig.execution_costs optionally supplies an immutable ExecutionCostConfig
+with spread, slippage, commission_per_unit and fixed_fee_per_fill. MID bars use
+half-spread on both sides; BID buys and ASK sells use full spread while their
+opposite sides use none. TRADE bars with nonzero synthetic spread fail explicitly.
+BUY (ENTER_LONG/EXIT_SHORT) adds adverse spread/slippage; SELL (ENTER_SHORT/EXIT_LONG)
+subtracts them. Only actual fills incur costs. Complete execution bar publication
+still does not gate the assumed open fill or permit a delayed close decision.
 
-The small private _next_open_fill boundary in engine.py owns execution price and
-Fill construction. Phase 8 can extend it with explicit execution-price/cost
-behavior while preserving signal timing and position lifecycle. No full execution
-framework or cost fields have been pre-built. Phase 9 will add analytics derived
-from trades/equity; none are reported in this result.
+The private _next_open_fill boundary now lives in execution.py and calculates
+prices/costs without strategy evaluation or accounting. engine.py recognizes
+costs and P&L without changing lifecycle timing; evaluation.py remains unchanged.
+Nonpositive adjusted prices and effects that cannot reconcile at precision 34
+raise BacktestInputError. All public cost models and arithmetic validators use
+isolated Decimal contexts, including during JSON validation.
+
+No partial fills, advanced orders, stop/target execution, latency simulation,
+financing, market impact, margin, leverage, FX conversion or tick-price rounding
+exists. Explicit cash costs use Phase 7 research P&L units. Phase 9 analytics
+remain planned. See [execution-cost-model.md](execution-cost-model.md) for exact
+formulas, combined examples, serialized records, equity and precision restrictions.
