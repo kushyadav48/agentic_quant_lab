@@ -1,12 +1,14 @@
 """Explicit approved parameter variants; no overrides, approvals or ranking."""
 from collections.abc import Iterable
 from decimal import DecimalException, localcontext
+import json
 
 from quantlab._decimal import deterministic_context
 from quantlab.analytics import AnalyticsConfig
 from quantlab.backtesting import BacktestConfig
 from quantlab.data import Instrument, MarketBar
 from quantlab.features import FeatureObservation
+from quantlab.strategies.schema import _canonical
 from .errors import ResearchValidationCompatibilityError, ResearchValidationInputError
 from .models import RobustnessCandidate, RobustnessCandidateResult, RobustnessReport, ValidationWindow
 from .runner import _prepare, _raise_boundary, _segment
@@ -15,13 +17,16 @@ from ._summary import summarize
 
 
 def _structure(strategy):
-    content = strategy.content.model_dump()
+    content = strategy.content.model_dump(mode="python")
     # Revision provenance may change. Everything else except declared defaults
     # must match, including parameter types/bounds and feature arguments.
     content.pop("provenance")
     for parameter in content["parameters"]:
         parameter.pop("default")
-    return content
+    # Canonical JSON keeps schema-valid Decimal/int/bool scalars distinct, unlike
+    # Python equality. Schema collections are strict tuples; retain their order.
+    return json.dumps(_canonical(content), sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=True)
 
 
 def run_parameter_robustness(candidates: Iterable[RobustnessCandidate],

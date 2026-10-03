@@ -162,7 +162,11 @@ Candidates are an explicit finite sequence, preserved in caller order. Identifie
 must be unique and the baseline must be explicitly present; there is no implicit
 baseline or ranking. All variants share the same strategy ID and content structure,
 parameter names/types/bounds/descriptions and feature definitions. Only declared
-parameter defaults and revision provenance may differ. Feature argument changes
+parameter defaults and revision provenance may differ. Scalar types are part of
+structure: a Decimal constant and an equal-valued integer constant are different,
+as are numeric and boolean constants. Comparison uses canonical serialization
+after excluding only provenance and declared parameter defaults; nested fields
+and sequence order are preserved. Feature argument changes
 (e.g. an SMA period embedded in FeatureReference) are outside this V1 API; it tests
 ParameterOperand sensitivity, not arbitrary structurally different strategies.
 Candidates need no sorting by values. There is no grid generation or runtime override.

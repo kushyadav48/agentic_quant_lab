@@ -67,8 +67,11 @@ observed bars. Session coverage remains caller-owned. Empty bars raise
 BacktestInputError. One bar is accepted and may produce an unfilled signal.
 
 Feature compatibility reuses validate_strategy_features and its fixed Phase 6
-registry. Only supported INDICATOR declarations are accepted; ML_SIGNAL, LEVEL,
-unknown algorithms, invalid arguments and differing timeframe overrides fail.
+registry for supported INDICATOR declarations. Phase 12 also supports the bounded
+ML_SIGNAL implementation `ml_forward_return_v1`, requiring exactly one integer
+`model_digest` argument in the unsigned 256-bit range and a matching timeframe.
+Other ML_SIGNAL implementations, LEVEL, unknown algorithms, invalid arguments
+and differing timeframe overrides fail.
 Feature IDs are strategy-visible aliases; implementation_id identifies the
 calculation, falling back to feature_id when the declaration omits it.
 

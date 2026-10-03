@@ -10,7 +10,7 @@ from quantlab.analytics import AnalyticsConfig, analyze_performance
 from quantlab.backtesting import BacktestConfig, ExecutionCostConfig, run_backtest
 from quantlab.data import PriceType
 from quantlab.strategies import (
-    Comparison, FeatureArgument, FeatureOperand, FeatureReference, FeatureType,
+    Comparison, ConstantOperand, Direction, FeatureArgument, FeatureOperand, FeatureReference, FeatureType,
     Parameter, ParameterOperand, ParameterType, StrategyContent,
 )
 from quantlab.validation import (
@@ -242,16 +242,37 @@ def test_offsets_and_crossing_history_are_explicitly_segment_local():
     assert hold(series,crossing).out_of_sample.backtest.signals == ()
 
 
-def test_delayed_history_dependencies_cannot_be_hidden_by_segment_slicing():
+def test_delayed_history_dependencies_cannot_be_hidden_by_segment_slicing(monkeypatch):
+    import quantlab.validation.runner as runner
+
     spec = strategy(entry=group(rule(left=FeatureOperand(feature_id="fast"))), features=(reference(period=3),))
     series = bars((101,)*6)
-    features = observations(spec, series)
-    delayed = (series[0].model_copy(update={"available_at":START+20*MINUTE}),)+series[1:]
-    with pytest.raises(ResearchValidationInputError, match="contributing bar"):
-        hold(delayed, spec, features)
-    # Correctly propagated availability preserves observations but gates decisions.
-    delayed_features = observations(spec, delayed)
-    assert hold(delayed,spec,delayed_features).in_sample.backtest.signals == ()
+    cfg = split(train_end=1, test_start=3, test_end=6)
+    # Index 2 is outside both replay windows but contributes to the first OOS SMA.
+    delayed = series[:2]+(series[2].model_copy(update={"available_at":START+20*MINUTE}),)+series[3:]
+    features = tuple(o for o in observations(spec, series) if o.timestamp >= series[3].end_time)
+    first = features[0]
+    assert first.timestamp == series[3].end_time
+    assert first.input_start <= delayed[2].start_time < first.timestamp
+    assert first.available_at < delayed[2].available_at
+    # These supplied claims pass sliced OOS validation when the dependency is absent.
+    assert run_backtest(spec, delayed[3:6], features, instrument=INSTRUMENT,
+        config=CONFIG).signals[0].signal_time == series[3].end_time
+
+    def deny_segment(*args, **kwargs):
+        raise AssertionError("segment execution must not begin before history validation")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(runner, "_segment", deny_segment)
+        with pytest.raises(ResearchValidationInputError, match="contributing bar"):
+            hold(delayed, spec, features, split=cfg)
+    # Correct propagation gates the first two OOS decisions that depend on index 2.
+    delayed_features = tuple(o for o in observations(spec, delayed) if o.timestamp >= series[3].end_time)
+    report = hold(delayed, spec, delayed_features, split=cfg)
+    assert report.in_sample.backtest.signals == ()
+    assert len(report.out_of_sample.backtest.signals) == 1
+    assert report.out_of_sample.backtest.signals[0].signal_time == series[5].end_time
+    assert report.out_of_sample.backtest.fills == ()
 
 
 def test_uncovered_feature_history_is_explicit_compatibility_error():
@@ -349,6 +370,74 @@ def test_approved_variants_exact_returns_order_and_explicit_baseline_without_ran
     assert tuple(c.candidate.candidate_id for c in reordered.candidates)==("variant-1","variant-0","baseline")
     for model in (RobustnessReport,DescriptiveSummary):
         assert not {"winner","rank","score","recommended_candidate","best"} & model.model_fields.keys()
+
+
+def test_constant_scalar_type_change_is_not_a_parameter_variant():
+    from quantlab.validation.robustness import _structure
+
+    baseline = strategy()
+    content = baseline.content.model_dump()
+    content["long"]["entry"]["rules"][0]["right"] = ConstantOperand(value=100)
+    revised = approve(baseline.revise(StrategyContent(**content)))
+    assert type(baseline.content.long.entry.rules[0].right.value) is D
+    assert type(revised.content.long.entry.rules[0].right.value) is int
+    assert baseline.content_digest != revised.content_digest
+    candidates = (RobustnessCandidate(candidate_id="baseline", strategy=baseline),
+        RobustnessCandidate(candidate_id="integer", strategy=revised))
+    before = tuple(c.model_dump_json() for c in candidates)
+    with pytest.raises(ResearchValidationCompatibilityError, match="structure"):
+        robust(candidates)
+    assert _structure(baseline) != _structure(revised)
+    assert tuple(c.model_dump_json() for c in candidates) == before
+
+
+@pytest.mark.parametrize("numeric", [1, D("1")], ids=["integer", "decimal"])
+def test_boolean_and_numeric_constants_are_structurally_distinct(numeric):
+    baseline = strategy(entry=group(rule(Comparison.EQ,
+        left=ConstantOperand(value=numeric), right=ConstantOperand(value=numeric))))
+    content = baseline.content.model_dump()
+    content["long"]["entry"] = group(rule(Comparison.EQ,
+        left=ConstantOperand(value=True), right=ConstantOperand(value=True)))
+    revised = approve(baseline.revise(StrategyContent(**content)))
+    assert baseline.content_digest != revised.content_digest
+    with pytest.raises(ResearchValidationCompatibilityError, match="structure"):
+        robust((RobustnessCandidate(candidate_id="baseline", strategy=baseline),
+            RobustnessCandidate(candidate_id="boolean", strategy=revised)))
+
+
+@pytest.mark.parametrize("change", ["entry", "exit", "direction", "implementation",
+    "feature_argument", "feature_argument_type", "parameter_type", "minimum", "maximum", "feature_alias"])
+def test_approved_non_default_structure_changes_rejected(change):
+    baseline = strategy(entry=group(rule(left=FeatureOperand(feature_id="fast"),
+        right=ParameterOperand(name="threshold"))), features=(reference(),),
+        parameters=variants()[0].strategy.content.parameters)
+    content = baseline.content.model_dump()
+    if change in ("entry", "exit"):
+        content["long"][change]["rules"][0]["comparison"] = Comparison.GE
+    elif change == "direction":
+        content.update(direction=Direction.SHORT, short=content["long"], long=None)
+    elif change == "implementation":
+        content["features"][0]["implementation_id"] = "ema"
+    elif change in ("feature_argument", "feature_argument_type"):
+        content["features"][0]["parameters"][0]["value"] = 3 if change == "feature_argument" else D("2")
+    elif change == "parameter_type":
+        content["parameters"][0].update(type=ParameterType.INTEGER, default=100,
+            minimum=90, maximum=120)
+    elif change in ("minimum", "maximum"):
+        content["parameters"][0][change] = D("95" if change == "minimum" else "115")
+    else:
+        content["features"][0]["feature_id"] = "renamed"
+        content["long"]["entry"]["rules"][0]["left"]["feature_id"] = "renamed"
+    revised = approve(baseline.revise(StrategyContent(**content)))
+    assert baseline.content_digest != revised.content_digest
+    series = bars((101, 108, 115))
+    features = observations(baseline, series)
+    # The baseline is executable; each changed candidate is independently approved.
+    assert robust((RobustnessCandidate(candidate_id="baseline", strategy=baseline),),
+        series, features=features).candidate_count == 1
+    with pytest.raises(ResearchValidationCompatibilityError, match="structure"):
+        robust((RobustnessCandidate(candidate_id="baseline", strategy=baseline),
+            RobustnessCandidate(candidate_id="changed", strategy=revised)), series, features=features)
 
 
 @pytest.mark.parametrize("kind", ["draft", "validated", "revision", "stale_approval"])
