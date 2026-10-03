@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from quantlab.data import Instrument, MarketBar, ValidationOptions, validate_dataset
 from quantlab.features import FeatureObservation, FeatureRequest, validate_strategy_features
 from quantlab.strategies import ApprovalState, MarketField, MarketOperand, StrategySpecification
+from quantlab.risk import RiskAction, RiskContext, RiskDecision, RiskSide, evaluate_entry_risk
 from .enums import EvaluationResult as E, PositionSide, SignalAction
 from .errors import BacktestCompatibilityError, BacktestInputError, BacktestSignalConflictError
 from .evaluation import RuleEvaluator
@@ -137,12 +138,28 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
     fills: list[Fill] = []
     trades: list[ClosedTrade] = []
     curve: list[EquityPoint] = []
+    risk_decisions: list[RiskDecision] = []
+    running_peak = config.initial_capital
     position: Position | None = None
     pending: Signal | None = None
     realized = unrealized = Decimal("0")
     digest = strategy.content_digest
     with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
         for index, bar in enumerate(records):
+            if pending is not None and pending.action in (SignalAction.ENTER_LONG, SignalAction.ENTER_SHORT):
+                assert position is None
+                # Flat before entry: no unrealized P&L and no prospective fill costs.
+                equity = config.initial_capital + realized
+                running_peak = max(running_peak, equity)
+                decision = evaluate_entry_risk(RiskContext(
+                    signal_time=pending.signal_time, execution_time=bar.start_time,
+                    side=RiskSide.LONG if pending.action is SignalAction.ENTER_LONG else RiskSide.SHORT,
+                    requested_quantity=config.quantity, reference_price=bar.open,
+                    current_equity=equity, running_peak_equity=running_peak), config.risk)
+                risk_decisions.append(decision)
+                if decision.action is RiskAction.REJECT:
+                    # Consume the intent; keep its original signal, create no fill/cost.
+                    pending = None
             if pending is not None:
                 fill = _next_open_fill(pending, bar, config.quantity, config.execution_costs)
                 fills.append(fill)
@@ -197,6 +214,10 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
             unrealized = _pnl(position, bar.close) if position is not None else Decimal("0")
             curve.append(EquityPoint(timestamp=bar.end_time, realized_pnl=realized,
                 unrealized_pnl=unrealized, equity=config.initial_capital + realized + unrealized))
+            # Retrospective delayed marks remain in reporting, but never feed risk.
+            # Only an observation known at this close can update the runtime peak.
+            if bar.available_at <= bar.end_time:
+                running_peak = max(running_peak, curve[-1].equity)
     return BacktestResult(strategy_id=strategy.strategy_id, strategy_version=strategy.version,
         strategy_content_digest=digest, instrument_id=instrument.instrument_id,
         timeframe=records[0].timeframe, price_type=records[0].price_type,
@@ -204,4 +225,5 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
         signals=tuple(signals), fills=tuple(fills), closed_trades=tuple(trades),
         open_position=position, equity_curve=tuple(curve), realized_pnl=realized,
         unrealized_pnl=unrealized, final_equity=curve[-1].equity,
-        execution_costs=config.execution_costs)
+        execution_costs=config.execution_costs, risk=config.risk,
+        risk_decisions=tuple(risk_decisions))

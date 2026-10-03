@@ -126,8 +126,11 @@ realized_pnl means cumulative realized account P&L, including costs already paid
 Equivalently, realized account P&L includes net P&L of all closed trades and
 subtracts the entry explicit costs of any current open position. Flat unrealized
 is zero. Close marks remain retrospective Phase 7 research reporting, including
-marks on delayed bars; they do not become decision inputs or hypothetical exit prices.
-An equity point is recorded at each bar end, after any actual open fill.
+marks on delayed bars; they do not become strategy decision inputs or hypothetical exit prices.
+Phase 11 separately uses on-time close observations for a causal runtime risk peak;
+delayed retrospective marks never enter that peak. These marks do not determine
+entry price or strategy sizing. An equity point is recorded at each bar end,
+after any actual open fill.
 Capital is not debited on entry, and negative equity has no invented liquidation policy.
 
 End-of-data positions stay open. Only their actual entry spread/slippage and cash
@@ -170,5 +173,11 @@ Prices are not rounded to Instrument.tick_size; tick_size and contract_multiplie
 retain their existing metadata role. Research equity is not a brokerage cash ledger.
 Phase 9 analytics consumes completed BacktestResult in a separate layer; see
 [net performance formulas and open-position policy](performance-analytics.md).
-Walk-forward validation is provided by [Phase 10 research validation](research-validation.md); risk, ML, agents, paper trading and APIs remain planned.
+Walk-forward validation is provided by [Phase 10 research validation](research-validation.md).
+[Phase 11 risk](risk-engine.md) evaluates each proposed entry before pricing and costs,
+using the unadjusted reference open and current pre-fill equity. Rejected entries
+create no fill and incur none of these costs. Allowed entries retain the complete
+fixed quantity and unchanged formulas; exits never pass entry risk gating. A
+reference-notional cap does not cap spread/slippage-adjusted fill notional.
+ML, agents, paper trading and APIs remain planned.
 Fixed execution costs alone do not establish live realism.

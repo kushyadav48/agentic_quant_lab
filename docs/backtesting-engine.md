@@ -12,8 +12,9 @@ The engine supports LONG, SHORT and BOTH, fixed quantity, one position, declarat
 rules and next-open market fills. It adds no dependencies or network access.
 Phase 9 performance ratios and drawdowns are computed separately from completed
 BacktestResult output; see [performance analytics](performance-analytics.md).
-Optimization, portfolio allocation, broker execution, paper trading, risk models
-and microstructure realism remain planned.
+Phase 11 adds mandatory deterministic entry controls before fill pricing; see
+[risk-engine.md](risk-engine.md). Optimization, portfolio allocation, broker
+execution, paper trading and microstructure realism remain planned.
 Phase 8 adds deterministic fixed execution costs; see [the full cost specification](execution-cost-model.md).
 
 ## Entry point and input contracts
@@ -138,7 +139,9 @@ later cannot change historical signals.
 
 A TRUE entry/exit at bar N close records a Signal with exact strategy identity,
 version/digest, source bar interval, instrument, action and signal time. It creates
-one pending action. That action fills at bar N+1 open, before evaluating N+1 close.
+one pending action. An exit fills at bar N+1 open; an entry must first pass
+mandatory Phase 11 risk evaluation at that open. Both occur before evaluating
+N+1 close.
 The engine never uses bar N open after inspecting bar N close.
 
 Adjacent half-open bars can share bar N end_time and bar N+1 start_time. Equal
@@ -150,7 +153,9 @@ Fills at the next open are a declared ideal execution assumption. They do not
 require the complete execution bar to have been published at its start; its later
 publication still gates its close decision. Phase 7 does not simulate publication
 latency of the opening price. Equity marks use historical closes retrospectively,
-including delayed bars, and are not inputs to strategy decisions or sizing.
+including delayed bars. Phase 11 risk uses a separate causal peak: only on-time
+close observations and current known flat equity participate; delayed marks never
+enter that peak. Strategy evaluation and fixed quantity remain unchanged.
 
 On the final bar, signals are recorded but have no fill. There is no invented next
 bar, end-of-data liquidation or final close execution.
@@ -255,5 +260,13 @@ consumes completed output in a separate package; see
 examples, serialized records, equity and precision restrictions.
 
 Phase 10 [research validation](research-validation.md) coordinates independent
-holdout/fold/candidate runs using this engine unchanged. Each segment starts flat
-and final signals cannot fill in another segment.
+holdout/fold/candidate runs using this engine with the supplied nested risk policy.
+Each segment starts flat with a fresh risk peak, and final signals cannot fill in
+another segment.
+
+BacktestConfig.risk defaults to unrestricted RiskConfig(); existing economics are
+preserved. BacktestResult adds risk and risk_decisions, recording every evaluated
+entry, even under default policy. A rejected signal remains recorded without fill,
+cost or accounting change; later closes may propose fresh entries. Fixed quantity
+is never reduced. Entry decisions use the unadjusted execution open and flat equity
+before entry costs. Exits are never risk-gated and breaches never force close.

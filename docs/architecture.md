@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–10 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics and Phase 10 research validation described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–11 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation and Phase 11 deterministic entry risk described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -243,7 +243,7 @@ Historical close marks are retrospective reporting; complete bar availability ga
 decisions, not the assumed next-open fill.
 
 [Backtesting contracts and examples](backtesting-engine.md) define causality,
-validation, accounting and limitations. Phase 9 analytics consumes these completed results separately; risk remains planned.
+validation, accounting and limitations. Phase 9 analytics consumes these completed results separately; Phase 11 enforces entry risk before execution pricing.
 
 ## Implemented Phase 8 execution costs
 
@@ -307,8 +307,28 @@ cover supplied feature input_start metadata, including delayed dependencies. Sha
 cost/analytics configuration is retained in reports. OOS aggregates do not compound
 independent equity curves. Parameter variants require separate exact-version
 approval and fixed structure; no runtime override, ranking or fitting is added.
-Regime/session analysis, label purge/embargo, risk and subsequent phases remain
-planned. See [complete Phase 10 policies](research-validation.md).
+Regime/session analysis, label purge/embargo and subsequent phases remain
+planned. Phase 11 risk policies propagate through the existing BacktestConfig. See [complete Phase 10 policies](research-validation.md).
+
+## Implemented Phase 11 deterministic risk
+
+quantlab.risk supplies frozen strict RiskConfig, RiskContext and RiskDecision,
+ALLOW/REJECT actions, stable reasons and pure evaluate_entry_risk. BacktestConfig
+nests the policy; all five optional limits default to None. The backtester owns
+account state and a fresh runtime peak for each run. Every entry at the next open
+is evaluated before execution pricing/costs; rejection consumes intent, retains
+the Signal, and creates no fill or costs. Exits bypass entry gating and there is
+no forced liquidation or quantity reduction. Results retain policy and decisions.
+
+Quantity, unsigned reference-open notional and equity-fraction caps allow exact
+equality. Minimum equity and peak-relative drawdown block at equality. Runtime
+peak uses initial capital, prior on-time close equity and current flat pre-entry
+equity; delayed retrospective marks never enter risk state, even after publication.
+Exact integer-ratio comparisons of Decimal values enforce boundaries independently
+of caller context; account/cost arithmetic retains isolated precision 34. Phase 10
+reuses the policy with independent segment/fold/candidate peaks. Capital-at-risk is
+deferred because stops remain unsupported; daily/session, portfolio, margin and
+dynamic sizing controls are not introduced. See [risk-engine.md](risk-engine.md).
 
 ## Planned system flow
 
@@ -395,7 +415,7 @@ Phase 7 implements approved-specification signals, next-open fills, positions, c
 
 Current execution policies model configured spread, slippage, commission and fees at the causal next open. Future policies may add latency assumptions, order types, minimum sizes, tick/lot rounding, and market availability. Forex financing/rollover and currency conversion must be explicit when relevant. If both stop and target fall inside a bar and their order is unknown, use a documented conservative policy or reject the ambiguous scenario; do not infer a favorable path.
 
-Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simple research equity. Account constraints and a reusable risk engine remain later work before paper trading. Cost-free fixtures test mechanics; Phase 8 makes cost assumptions auditable, but fixed costs alone do not establish live execution realism.
+Phase 7 uses fixed Decimal quantity with existing quantity-step checks and simple research equity. Phase 11 now enforces configured deterministic entry limits before pricing; brokerage account constraints remain later work before paper trading. Cost-free fixtures test mechanics; Phase 8 makes cost assumptions auditable, but fixed costs alone do not establish live execution realism.
 
 ### Performance analytics
 
@@ -441,9 +461,20 @@ Do not expose arbitrary shell/code execution or an unrestricted database interfa
 
 ### Deterministic risk
 
-Own position sizing and policies for per-trade loss, leverage/margin, instrument concentration, aggregate exposure, daily loss, drawdown, and data freshness as those policies are implemented. Policies will be versioned and administered through explicit human-controlled configuration, never by an LLM-generated override.
+Phase 11 implements single-instrument fixed-quantity entry gates for quantity,
+reference notional, equity fraction, minimum equity and observed drawdown. Risk
+decides permission after strategy intent and before execution pricing; it does
+not own strategy sizing or account updates. Per-trade loss, leverage/margin,
+concentration, aggregate exposure, daily loss and data freshness remain future
+policies. Policy administration/versioning remains human-controlled future work,
+never an LLM-generated override.
 
-Before every simulated order, evaluate current account/portfolio state and relevant policy limits. Denials must include machine-readable reasons. Missing or stale risk inputs fail closed; an engine failure is not permission to trade. Account state updates and checks must be coordinated so concurrent strategies cannot independently spend the same risk budget.
+Before every new-exposure entry, evaluate current known account state and relevant
+limits. Exits are not blocked by entry controls. Denials include machine-readable
+reasons; malformed inputs or an engine failure never grant permission to enter.
+Future portfolio/concurrent execution must coordinate checks and account updates
+so strategies cannot independently spend the same risk budget. Stale-feed policy
+requires a future canonical live-data contract.
 
 Hard limits apply after strategy sizing proposals. Stop controls must prevent new orders and document the treatment of pending orders/positions. Reusable risk policy interfaces support consistent backtest and paper-trading decisions while preserving execution-mode differences.
 

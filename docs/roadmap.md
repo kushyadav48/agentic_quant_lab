@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–10 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phases 11–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–11 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phases 12–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -130,9 +130,20 @@ future profitability.
 
 ## 11. Deterministic risk engine
 
-Purpose: centralize enforceable sizing and account/portfolio limits before simulated trading.
+**Implemented V1.** quantlab.risk provides a pure entry evaluator and frozen strict
+config/context/decisions with stable ALLOW/REJECT reasons. BacktestConfig.risk
+defaults to no restrictions. Mandatory next-open pre-fill gates enforce maximum
+quantity, unsigned reference notional, equity-fraction exposure, minimum equity and
+causal observed drawdown. No rejected fill/cost is created; signals remain recorded,
+exits proceed and open positions are never liquidated by risk. Results retain policy
+and ordered decisions. Phase 10 propagates the policy with independent runtime
+peaks. Exact Decimal integer-ratio comparisons protect hard boundaries and caller
+context independence. See [risk-engine.md](risk-engine.md).
 
-Deliverables: versioned risk policies, per-order decisions and rejection reasons, exposure/leverage/drawdown/loss controls, stale-data checks, stop controls, and atomic risk-budget handling. Integrate reusable checks into the backtest path and test fail-closed behavior and attempted bypasses.
+Fixed quantity is preserved because existing analytics requires it; resizing is
+deferred. Capital-at-risk is deferred because stops remain unsupported. Portfolio,
+leverage/margin, daily/session loss, cumulative realized-loss, stale-feed and atomic
+multi-order budget controls are outside V1. No ML or later phase is implemented.
 
 ## 12. ML research pipeline
 

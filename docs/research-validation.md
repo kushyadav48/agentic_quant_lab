@@ -80,7 +80,11 @@ but cannot fill unless its following execution bar is in that same segment.
 The first test open cannot fill a final train signal; a suffix open cannot fill
 a final test signal. This uses Phase 7 behavior without result filtering or an
 engine change. All Phase 8 costs from the supplied BacktestConfig are retained,
-including spread, slippage, per-unit commission and per-fill fees. Existing price
+including spread, slippage, per-unit commission and per-fill fees. The nested
+BacktestConfig.risk is also preserved by every segment/fold/candidate. Each replay
+starts with a fresh peak at its own initial capital; risk state never carries
+between runs. Segment BacktestResult retains risk and ordered risk_decisions,
+including rejected entries with their original signals and no fill/cost. Existing price
 basis restrictions and accounting errors still apply.
 
 ## Explicit feature and warm-up policy
@@ -195,8 +199,10 @@ Reports audit run boundaries, strategy identity, config and metrics. They do not
 persist input datasets or verify external feature numeric provenance; callers retain
 those artifacts for replay. There is no calendar/session inference, fitting,
 purge/embargo for future labels, regime analysis, optimization, random Monte Carlo,
-bootstrap, ML/LLM/agents/MCP, risk engine, VaR/CVaR, sizing expansion, stop execution,
-portfolio aggregation, live/paper trading, API or frontend. Phase 11 is not implemented.
+bootstrap, ML/LLM/agents/MCP, VaR/CVaR, sizing expansion, stop execution,
+portfolio aggregation, live/paper trading, API or frontend. Phase 11 is implemented
+separately; [risk-engine.md](risk-engine.md) defines its hard limits and causal peak.
+The existing orchestration automatically propagates that policy.
 
 Out-of-sample and walk-forward results are evidence about historical stability,
 not proof of future profitability. Repeated human selection against a holdout can

@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 from quantlab.data import PriceType, Timeframe
 from quantlab.data.models import Identifier, NonNegativeDecimal, PositiveDecimal, UtcTimestamp, _DomainModel
 from quantlab.strategies.schema import Digest
+from quantlab.risk import RiskConfig, RiskDecision
 from .enums import PositionSide, SignalAction
 
 FiniteDecimal = Annotated[Decimal, Field(allow_inf_nan=False)]
@@ -46,6 +47,7 @@ class BacktestConfig(_DomainModel):
     initial_capital: PositiveDecimal
     quantity: PositiveDecimal
     execution_costs: ExecutionCostConfig = Field(default_factory=ExecutionCostConfig)
+    risk: RiskConfig = Field(default_factory=RiskConfig)
 
 
 class Signal(_DomainModel):
@@ -180,3 +182,5 @@ class BacktestResult(_DomainModel):
     unrealized_pnl: FiniteDecimal
     final_equity: FiniteDecimal
     execution_costs: ExecutionCostConfig = Field(default_factory=ExecutionCostConfig)
+    risk: RiskConfig = Field(default_factory=RiskConfig)
+    risk_decisions: tuple[RiskDecision, ...] = ()
