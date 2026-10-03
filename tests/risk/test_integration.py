@@ -6,17 +6,20 @@ import sys
 import pytest
 from quantlab.analytics import analyze_performance
 from quantlab.backtesting import (
-    BacktestCompatibilityError, BacktestConfig, BacktestInputError, ExecutionCostConfig,
+    BacktestCompatibilityError, BacktestConfig, BacktestInputError, BacktestSignalConflictError, ExecutionCostConfig,
     SignalAction,
 )
 from quantlab.data import PriceType
 from quantlab.risk import RiskAction as A, RiskConfig, RiskReason as R, RiskSide
-from quantlab.strategies import Direction, DistanceUnit, FixedDistance
+from quantlab.strategies import (
+    Comparison, ConstantOperand, Direction, DistanceUnit, FixedDistance, Parameter,
+    ParameterOperand, ParameterType, StrategyContent,
+)
 from quantlab.validation import (
-    HoldoutConfig, ResearchValidationInputError, ValidationWindow, WalkForwardConfig, WalkForwardMode,
+    HoldoutConfig, ResearchValidationInputError, RobustnessCandidate, ValidationWindow, WalkForwardConfig, WalkForwardMode,
     run_holdout, run_parameter_robustness, run_walk_forward,
 )
-from tests.backtesting.helpers import CONFIG, D, INSTRUMENT, bars, simulate, strategy
+from tests.backtesting.helpers import CONFIG, D, INSTRUMENT, approve, bars, group, rule, simulate, strategy
 from tests.validation.test_validation import variants
 
 
@@ -188,6 +191,77 @@ def test_exits_never_blocked_when_equity_and_drawdown_breached(direction, closes
     assert result.open_position is None and result.final_equity == D("880")
 
 
+@pytest.mark.parametrize("direction,closes,opens,entry_price,exit_price,exit_action", [
+    (Direction.LONG, (101, 50, 50), (80, 100, 40), "101.5", "38.5", SignalAction.EXIT_LONG),
+    (Direction.SHORT, (99, 150, 150), (120, 100, 160), "98.5", "161.5", SignalAction.EXIT_SHORT),
+])
+def test_exit_bypasses_breached_entry_risk_and_pays_all_execution_costs(
+        direction, closes, opens, entry_price, exit_price, exit_action):
+    cfg = config(risk=RiskConfig(minimum_equity=D("950"), max_drawdown_fraction=D("0.01")),
+        costs=costs())
+    series = mid(bars(closes, opens))
+    result = simulate(strategy(direction), series, config=cfg)
+    # The position is open at the exit signal, with both entry limits breached.
+    assert result.equity_curve[1].equity == D("895.5") < cfg.risk.minimum_equity
+    assert (D("1000") - result.equity_curve[1].equity) / D("1000") > cfg.risk.max_drawdown_fraction
+    decision, = result.risk_decisions
+    assert decision.action is A.ALLOW and decision.reasons == ()
+    assert decision.execution_time == series[1].start_time
+    entry, exit_fill = result.fills
+    assert entry.execution_price == D(entry_price)
+    assert exit_fill.action is exit_action and exit_fill.execution_time == series[2].start_time
+    assert exit_fill.reference_price == D(opens[2]) and exit_fill.execution_price == D(exit_price)
+    for fill in (entry, exit_fill):
+        assert fill.spread_adjustment == D("1") and fill.slippage_adjustment == D("0.5")
+        assert fill.costs.spread_cost == D("2") and fill.costs.slippage_cost == D("1")
+        assert fill.costs.commission == D("0.5") and fill.costs.fees == D("1")
+        assert fill.costs.total_cost == D("4.5")
+    trade, = result.closed_trades
+    assert trade.entry_costs == entry.costs and trade.exit_costs == exit_fill.costs
+    assert trade.reference_gross_pnl == D("-120") and trade.gross_pnl == D("-126")
+    assert trade.costs.total_cost == D("9") and trade.net_pnl == D("-129")
+    assert result.open_position is None and result.unrealized_pnl == 0
+    assert result.realized_pnl == D("-129") and result.final_equity == D("871")
+
+
+@pytest.mark.parametrize("risk", [RiskConfig(), RiskConfig(max_position_quantity=D("1"))])
+def test_one_bar_entry_has_no_next_open_risk_event(risk):
+    result = simulate(series=bars((101,)), config=config(risk=risk))
+    signal, = result.signals
+    assert signal.action is SignalAction.ENTER_LONG
+    assert result.risk_decisions == () and result.fills == ()
+    assert result.open_position is None and result.closed_trades == ()
+    assert result.final_equity == D("1000")
+
+
+@pytest.mark.parametrize("risk", [RiskConfig(), RiskConfig(max_position_quantity=D("1"))])
+def test_both_true_entries_conflict_before_risk_can_arbitrate(risk):
+    spec = strategy(Direction.BOTH, entry=group(rule(Comparison.EQ,
+        left=ConstantOperand(value=True), right=ConstantOperand(value=True))))
+    # Supply a next open: neither unrestricted nor rejecting risk resolves the conflict.
+    with pytest.raises(BacktestSignalConflictError, match="simultaneous long/short"):
+        simulate(spec, bars((100, 100)), config=config(risk=risk))
+
+
+def test_backtest_a_b_a_does_not_carry_peak_equity_or_risk_decisions():
+    spec = strategy()
+    cfg = config(risk=RiskConfig(max_drawdown_fraction=D("0.10")))
+    series_a = bars((101, 99, 101, 110), (80, 100, 100, 100))
+    series_b = bars((101, 200, 99, 101, 110), (80, 100, 100, 100, 100))
+    first_a = simulate(spec, series_a, config=cfg)
+    b = simulate(spec, series_b, config=cfg)
+    second_a = simulate(spec, series_a, config=cfg)
+    assert [d.action for d in first_a.risk_decisions] == [A.ALLOW, A.ALLOW]
+    assert [d.action for d in b.risk_decisions] == [A.ALLOW, A.REJECT]
+    assert b.equity_curve[1].equity == D("1200")
+    assert b.risk_decisions[-1].running_peak_equity == D("1200")
+    assert b.risk_decisions[-1].current_equity == D("1000")
+    assert b.risk_decisions[-1].reasons == (R.MAX_DRAWDOWN,)
+    assert first_a == second_a
+    assert all(d.current_equity == d.running_peak_equity == D("1000")
+        for d in second_a.risk_decisions)
+
+
 def test_breach_does_not_liquidate_position_or_fabricate_end_cost():
     cfg = config(risk=RiskConfig(minimum_equity=D("950"), max_drawdown_fraction=D("0.01")),
         costs=ExecutionCostConfig(fixed_fee_per_fill=D("1")))
@@ -289,6 +363,61 @@ def test_walk_forward_risk_state_resets_for_each_train_test_and_fold(mode):
             assert first.action is A.ALLOW
         assert fold.out_of_sample.backtest.realized_pnl == D("-100")
         assert len(fold.out_of_sample.backtest.fills) == 2
+
+
+@pytest.mark.parametrize("mode", tuple(WalkForwardMode))
+def test_walk_forward_elevated_runtime_peak_does_not_leak_to_oos_or_later_fold(mode):
+    series = bars((101, 200, 99, 101, 110) + (101, 110, 110) * 2,
+        (80, 100, 100, 100, 100) + (80, 100, 100) * 2)
+    cfg = config(risk=RiskConfig(max_drawdown_fraction=D("0.10")))
+    report = run_walk_forward(strategy(), series, instrument=INSTRUMENT, config=cfg,
+        walk_forward=WalkForwardConfig(train_size=5, test_size=3, step_size=3, mode=mode))
+    assert report.fold_count == 2
+    earlier = report.folds[0].in_sample.backtest
+    assert series[1].available_at == series[1].end_time
+    assert earlier.equity_curve[1].equity == D("1200")
+    # A later entry in this segment proves 1200 entered the runtime peak.
+    assert earlier.risk_decisions[-1].running_peak_equity == D("1200")
+    assert earlier.risk_decisions[-1].current_equity == D("1000")
+    assert earlier.risk_decisions[-1].action is A.REJECT
+    assert earlier.risk_decisions[-1].reasons == (R.MAX_DRAWDOWN,)
+    for segment in (report.folds[0].out_of_sample, report.folds[1].in_sample,
+            report.folds[1].out_of_sample):
+        result = segment.backtest
+        first = result.risk_decisions[0]
+        # Carrying 1200 at equity 1000 would breach the 10% drawdown limit.
+        assert first.current_equity == first.running_peak_equity == D("1000")
+        assert first.action is A.ALLOW and first.reasons == ()
+        assert result.fills[0].action is SignalAction.ENTER_LONG
+        assert result.fills[0].execution_time == first.execution_time
+
+
+def test_robustness_elevated_runtime_peak_does_not_leak_to_next_candidate():
+    spec_a = strategy(entry=group(rule(right=ParameterOperand(name="threshold"))),
+        parameters=(Parameter(name="threshold", type=ParameterType.DECIMAL, default=D("100"),
+            minimum=D("90"), maximum=D("120")),))
+    content = spec_a.content.model_dump()
+    content["parameters"] = (spec_a.content.parameters[0].model_copy(update={"default": D("110")}),)
+    spec_b = approve(spec_a.revise(StrategyContent(**content)))
+    candidates = (RobustnessCandidate(candidate_id="A", strategy=spec_a),
+        RobustnessCandidate(candidate_id="B", strategy=spec_b))
+    series = bars((101, 200, 99, 115, 110), (80, 100, 100, 100, 100))
+    cfg = config(risk=RiskConfig(max_drawdown_fraction=D("0.10")))
+    report = run_parameter_robustness(candidates, series, baseline_candidate_id="A",
+        window=ValidationWindow(start=0, end=5), instrument=INSTRUMENT, config=cfg)
+    assert tuple(c.candidate.candidate_id for c in report.candidates) == ("A", "B")
+    a, b = (c.evaluation.backtest for c in report.candidates)
+    assert a.equity_curve[1].equity == D("1200")
+    assert [d.action for d in a.risk_decisions] == [A.ALLOW, A.REJECT]
+    assert a.risk_decisions[-1].running_peak_equity == D("1200")
+    assert a.risk_decisions[-1].current_equity == D("1000")
+    assert a.risk_decisions[-1].reasons == (R.MAX_DRAWDOWN,)
+    assert [d.action for d in b.risk_decisions] == [A.ALLOW, A.ALLOW]
+    assert all(d.current_equity == d.running_peak_equity == D("1000") and d.reasons == ()
+        for d in b.risk_decisions)
+    assert b.risk_decisions[0].execution_time == series[2].start_time
+    assert b.fills[0].execution_time == b.risk_decisions[0].execution_time
+    assert b.fills[0].action is SignalAction.ENTER_LONG
 
 
 def test_robustness_every_approved_variant_uses_same_risk_and_independent_state():

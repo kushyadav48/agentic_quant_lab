@@ -179,5 +179,8 @@ using the unadjusted reference open and current pre-fill equity. Rejected entrie
 create no fill and incur none of these costs. Allowed entries retain the complete
 fixed quantity and unchanged formulas; exits never pass entry risk gating. A
 reference-notional cap does not cap spread/slippage-adjusted fill notional.
-ML, agents, paper trading and APIs remain planned.
+[Phase 12 ML research](ml-research.md) adapts bounded ML predictions into ordinary
+validated FeatureObservation values. Approved ML-informed strategy entries still
+pass through normal deterministic execution, risk and cost logic.
+Agents, paper trading and APIs remain planned.
 Fixed execution costs alone do not establish live realism.
