@@ -221,4 +221,4 @@ No Sortino, Calmar, CAGR, exposure model, benchmark, calendar inference, portfol
 ranking, recommendation, optimization, robustness testing, VaR/CVaR, risk controls,
 ML/LLM/agents, API, frontend or paper trading is added. Valuation/execution retain
 Phase 7/8 limitations. Historical metrics do not validate strategy quality or
-future profitability. Phase 10 and later work remain planned.
+future profitability. Phase 10 orchestration is implemented separately; see [research validation](research-validation.md). Later phases remain planned.

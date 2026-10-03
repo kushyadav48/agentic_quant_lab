@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–9 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs and the Phase 9 performance analytics layer described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–10 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics and Phase 10 research validation described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -291,6 +291,25 @@ identities and ending mark agreement without repairing or replaying input. Fresh
 network activity, randomness, risk controls, robustness assessment or strategy
 scoring are added. See [the metric specification](performance-analytics.md).
 
+## Implemented Phase 10 research validation
+
+quantlab.validation orchestrates existing run_backtest and analyze_performance calls
+without changing their formulas or approvals. models.py holds strict immutable
+windows/configs/results; splits.py plans half-open bar-count holdouts and complete
+rolling/expanding folds; runner.py validates full causal feature dependencies before
+slicing and executes flat independent segments; robustness.py evaluates explicitly
+approved parameter-default variants; _summary.py computes descriptive Decimal
+statistics; errors.py distinguishes input and compatibility failures.
+
+No final-bar signal fills in another segment. Historical prepared indicator context
+is allowed; rule offsets/crossings restart within each segment. Full history must
+cover supplied feature input_start metadata, including delayed dependencies. Shared
+cost/analytics configuration is retained in reports. OOS aggregates do not compound
+independent equity curves. Parameter variants require separate exact-version
+approval and fixed structure; no runtime override, ranking or fitting is added.
+Regime/session analysis, label purge/embargo, risk and subsequent phases remain
+planned. See [complete Phase 10 policies](research-validation.md).
+
 ## Planned system flow
 
 ```mermaid
@@ -390,7 +409,7 @@ An LLM may explain results but cannot replace or silently recompute them.
 
 ### Research validation
 
-Own chronological out-of-sample splits, rolling/expanding walk-forward windows, parameter sensitivity, regime analysis, and session analysis. Train/validation/test separation applies where fitting or tuning occurs. Keep final holdouts isolated from iterative selection and record all tested candidates to make selection effects visible.
+Phase 10 implements chronological out-of-sample splits, rolling/expanding walk-forward windows and explicitly approved parameter-default sensitivity. Regime and session analysis remain planned. Train/validation/test separation applies where fitting or tuning occurs. Keep final holdouts isolated from iterative selection and record all tested candidates to make selection effects visible.
 
 Guard against leakage by fitting preprocessing only on training windows, preventing labels or overlapping targets from crossing split boundaries, and using purge/embargo policies when required by label horizons. Regime definitions, session timezone/DST conventions, and tuning budgets must be explicit. Report robustness and uncertainty; no validation method guarantees future performance.
 

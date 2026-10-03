@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–9 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phases 10–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–10 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phases 11–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -106,13 +106,27 @@ No dependency is added. See [performance-analytics.md](performance-analytics.md)
 
 Exposure models, calendar/currency inference, CAGR, Sortino/Calmar, strategy ranking
 and robustness/risk work are deferred. Historical metrics do not establish strategy
-quality or persistent profitability. Phase 10 and later phases remain planned.
+quality or persistent profitability. Phase 10 validation is implemented separately; later phases remain planned.
 
 ## 10. Out-of-sample, walk-forward, and robustness validation
 
-Purpose: evaluate stability and expose selection/overfitting risks.
+**Implemented.** quantlab.validation provides explicit chronological half-open
+bar-index holdouts, complete rolling/expanding walk-forward folds, independent
+start-flat runs and deterministic approved parameter-default variant sensitivity.
+Each window reuses Phase 7/8 backtesting and Phase 9 analytics with unchanged costs,
+approvals and undefined metrics. Supplied causal features retain indicator history;
+dependency availability is checked before slicing, and rule offsets/crossings are
+segment-local. Fold/candidate summaries describe Decimal returns, signed drawdowns,
+profit/loss counts and closed-trade totals without ranking or portfolio compounding.
 
-Deliverables: chronological split contracts, untouched holdouts, rolling/expanding walk-forward evaluation, parameter sensitivity, regime/session analysis, leakage checks, and candidate/tuning history. Apply purge/embargo when target horizons require it; report assumptions and uncertainty.
+Tests cover exact boundaries, hand-computed performance, next-open isolation,
+no position carry/forced close, future independence, feature warm-up/availability,
+costs, approval integrity, malformed copies, JSON, input immutability, hostile
+Decimal contexts and offline replay. See [policies and limitations](research-validation.md).
+No fitting, optimization, risk engine or later phase is added. Regime/session
+analysis, candidate/tuning persistence and label-horizon purge/embargo are deferred
+until their data/fitting contracts exist. Historical stability is not proof of
+future profitability.
 
 ## 11. Deterministic risk engine
 

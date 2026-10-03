@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–9 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. Robustness validation, AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–10 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. A separate Phase 10 validation layer adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity reports. AI integration, agents, risk, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -194,6 +194,17 @@ initial capital as the first peak. Undefined ratios are None. Population volatil
 and nonannualized Sharpe use isolated 34-digit Decimal arithmetic; annualization
 requires an explicit caller factor. No execution, strategy evaluation or robustness
 assessment is performed. See [formulas, policies and limitations](docs/performance-analytics.md).
+
+## Research validation
+
+Import run_holdout, run_walk_forward and run_parameter_robustness from
+quantlab.validation. Explicit half-open bar-index windows keep in-sample and OOS
+runs separate; each starts flat and cannot fill beyond its segment. Supplied causal
+features may retain historical indicator warm-up, while rule offsets/crossings restart
+within each segment. Descriptive summaries use Decimal and reuse Phase 9 analytics
+with supplied Phase 8 costs. Parameter candidates require their own exact-version
+approvals; there is no selection, ranking or optimization. See
+[window, warm-up, approval and replay policies](docs/research-validation.md).
 
 ## Roadmap summary
 

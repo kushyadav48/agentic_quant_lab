@@ -253,3 +253,7 @@ consumes completed output in a separate package; see
 [the metric specification](performance-analytics.md). See
 [execution-cost-model.md](execution-cost-model.md) for exact formulas, combined
 examples, serialized records, equity and precision restrictions.
+
+Phase 10 [research validation](research-validation.md) coordinates independent
+holdout/fold/candidate runs using this engine unchanged. Each segment starts flat
+and final signals cannot fill in another segment.

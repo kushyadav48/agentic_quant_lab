@@ -170,5 +170,5 @@ Prices are not rounded to Instrument.tick_size; tick_size and contract_multiplie
 retain their existing metadata role. Research equity is not a brokerage cash ledger.
 Phase 9 analytics consumes completed BacktestResult in a separate layer; see
 [net performance formulas and open-position policy](performance-analytics.md).
-Walk-forward validation, risk, ML, agents, paper trading and APIs remain planned.
+Walk-forward validation is provided by [Phase 10 research validation](research-validation.md); risk, ML, agents, paper trading and APIs remain planned.
 Fixed execution costs alone do not establish live realism.
