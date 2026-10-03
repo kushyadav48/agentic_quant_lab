@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–11 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation and Phase 11 deterministic entry risk described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–12 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk and Phase 12 offline ML research described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research; the other functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -330,6 +330,30 @@ reuses the policy with independent segment/fold/candidate peaks. Capital-at-risk
 deferred because stops remain unsupported; daily/session, portfolio, margin and
 dynamic sizing controls are not introduced. See [risk-engine.md](risk-engine.md).
 
+## Implemented Phase 12 offline ML research
+
+quantlab.ml constructs supervised rows from explicit ordered Phase 6 declarations,
+canonical observations and Phase 10 ValidationWindow indices. Exact-time causal joins
+omit missing/delayed inputs. Window-local forward-return labels never enter feature
+columns; final horizon rows and labels unavailable by training-window close are purged.
+A deterministic positive-penalty ridge regression uses standard-library exact fractions
+for fitting and isolated 34-digit Decimal coefficients/inference. No dependency,
+randomness, scaling, model selection or network operation is introduced.
+
+Frozen phase12-v1 artifacts retain the full schema/config, training decision bounds,
+conservative information cutoff including label publication, count, source-data digest,
+coefficients/intercept and a canonical SHA-256 model identity. Inference accepts only
+unlabeled exact-schema datasets strictly after the training cutoff. Predictions become
+canonical FeatureObservation objects with stable ml_forward_return_v1 implementation
+and a complete model-digest integer parameter. The existing ML_SIGNAL category now
+accepts only that bounded declaration; changing models changes strategy approval content.
+The ordinary backtester, cost model, analytics and risk engine remain authoritative.
+
+No ML API constructs a strategy, approval, Fill, Position or ClosedTrade. Callers can
+reuse Phase 10 windows for independent fitting; automated ML holdout/walk-forward
+orchestration, tuning and broader models are deferred. See [ml-research.md](ml-research.md)
+for provenance, exact numerical policies, limitations and the complete workflow.
+
 ## Planned system flow
 
 ```mermaid
@@ -435,7 +459,7 @@ Guard against leakage by fitting preprocessing only on training windows, prevent
 
 ### ML research
 
-Own reproducible feature/label construction, training, tuning, evaluation, and model artifact metadata. Begin with simple baselines and add scikit-learn, boosting libraries, Optuna, and tracking tools only as needed. Record seeds, dataset/split identities, hyperparameters, preprocessing state, and model versions.
+Phase 12 implements reproducible explicit feature/label datasets, a deterministic ridge baseline, OOS-only predictions and immutable model provenance as described above. Tuning, boosting libraries, Optuna, preprocessing and tracking services remain deferred. The implemented baseline uses no random seed or external numerical library.
 
 ML predictions are inputs to an explicit strategy specification and deterministic execution/risk pipeline. A trained model is not an independently authorized trader. Model selection must use validation data; final test data cannot feed tuning or feature-selection loops.
 

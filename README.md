@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–11 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. A separate Phase 10 validation layer adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity reports. Phase 11 adds mandatory deterministic ALLOW/REJECT entry controls with configurable quantity, reference-notional, equity-fraction, minimum-equity and causal drawdown limits plus a frozen audit trail. AI integration, agents, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–12 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. A separate Phase 10 validation layer adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity reports. Phase 11 adds mandatory deterministic ALLOW/REJECT entry controls with configurable quantity, reference-notional, equity-fraction, minimum-equity and causal drawdown limits plus a frozen audit trail. Phase 12 adds offline, window-bounded supervised datasets, deterministic ridge regression artifacts and strictly OOS model predictions as canonical strategy features. AI integration, agents, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -30,13 +30,13 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 | --- | --- | --- |
 | Core | Python 3.11+, Pydantic for typed domain models | Strict Pydantic market-data contracts implemented |
 | Quant/data | NumPy, Pandas and/or Polars, SciPy; Statsmodels where useful | Canonical model sequences for Phase 4; dataframe adoption deferred |
-| ML | scikit-learn, LightGBM, XGBoost, Optuna, experiment tracking | Planned |
+| ML | Offline baseline and auditable research artifacts | Phase 12 exact-rational ridge regression; broader ML tooling deferred |
 | AI | Provider-agnostic text/vision LLM adapters, LangGraph, MCP | Planned |
 | Backend/storage | FastAPI, PostgreSQL, storage adapters | Local SQLite dataset adapter implemented; FastAPI/PostgreSQL planned |
 | Frontend | Separate professional web dashboard, likely React/Next.js | Planned; final framework not selected |
 | Engineering | pytest, Git, structured logging; Docker and CI later | pytest development extra and existing Git metadata |
 
-Pydantic is the sole runtime dependency at this stage. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. Phase 4 validation/resampling/storage also use the standard library plus existing Pydantic models; SQLite requires no new dependency. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
+Pydantic is the sole runtime dependency at this stage. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. Phase 4 validation/resampling/storage also use the standard library plus existing Pydantic models; SQLite requires no new dependency. Phase 12 ridge fitting uses standard-library Fraction and Decimal, requiring no ML dependency or downloads. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
 
 ## Repository structure
 
@@ -216,11 +216,23 @@ with supplied Phase 8 costs. Parameter candidates require their own exact-versio
 approvals; there is no selection, ranking or optimization. See
 [window, warm-up, approval and replay policies](docs/research-validation.md).
 
+## Offline ML research
+
+Import build_dataset, train_model, predict_oos, prediction_feature_reference and
+predictions_to_features from quantlab.ml. Explicit ordered feature schemas join
+canonical observations at exact decision timestamps. Window-local forward-return
+labels train a small deterministic ridge baseline with auditable immutable parameters
+and SHA-256 provenance. OOS decisions must follow the complete training information
+cutoff, including future label availability. Model-bound ML_SIGNAL declarations flow
+through normal strategy approval, backtesting, costs, analytics and mandatory risk.
+Phase 10 bar-index windows are reused; no fitting/selection orchestration is added.
+See [dataset, numerical, cutoff and integration policies](docs/ml-research.md).
+
 ## Roadmap summary
 
 1. Establish the foundation, data domain, Forex ingestion, validation, resampling, and storage.
-2. Implement strategy specifications, features, backtesting, execution costs, analytics, validation, and deterministic risk.
-3. Add ML research, LLM abstraction, natural-language and multimodal interpretation, agents, and MCP tools.
+2. Implement strategy specifications, features, backtesting, execution costs, analytics, validation, deterministic risk, and offline ML research.
+3. Add LLM abstraction, natural-language and multimodal interpretation, agents, and MCP tools.
 4. Add paper trading, portfolio management, journaling, the API, and dashboard.
 5. Complete integration testing, deployment tooling, and public documentation/demo assets.
 

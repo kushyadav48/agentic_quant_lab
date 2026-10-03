@@ -135,7 +135,12 @@ validate_feature_reference(reference, timeframe=...) returns a typed request;
 validate_strategy_features(specification) returns requests for its declarations.
 These helpers revalidate Phase 5 contracts, require exact supported calculation IDs,
 valid arguments and feature_type=INDICATOR. That category covers all current
-numeric features including raw extraction. ML_SIGNAL and LEVEL are unsupported.
+numeric bar-derived features including raw extraction. Phase 12 additionally accepts
+ML_SIGNAL only for ml_forward_return_v1 with one unsigned 256-bit integer
+model_digest parameter. These are externally fitted predictions supplied through
+quantlab.ml, never synthesized by compute_features. The alias, implementation,
+parameters and timeframe must match exactly at backtesting. LEVEL remains
+unsupported. See [ML research integration](ml-research.md).
 
 FeatureReference.feature_id is the unique strategy-visible output alias; its
 optional implementation_id identifies the registered calculation. The compatibility

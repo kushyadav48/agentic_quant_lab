@@ -61,6 +61,20 @@ DEFAULT_REGISTRY = FeatureRegistry()
 def validate_feature_reference(reference: FeatureReference, *, timeframe: Timeframe,
                                registry: FeatureRegistry = DEFAULT_REGISTRY) -> FeatureRequest:
     reference = FeatureReference.model_validate(reference)
+    if reference.feature_type is FeatureType.ML_SIGNAL:
+        # Externally fitted Phase 12 outputs are declarations, not bar indicators.
+        # The integer parameter losslessly binds the complete 256-bit model digest.
+        if reference.implementation_id != "ml_forward_return_v1":
+            raise ValueError("unsupported ML implementation")
+        if (len(reference.parameters) != 1 or reference.parameters[0].name != "model_digest"
+                or type(reference.parameters[0].value) is not int
+                or not 0 <= reference.parameters[0].value < 2**256):
+            raise ValueError("ML feature requires one unsigned 256-bit model_digest parameter")
+        if reference.timeframe is not None and reference.timeframe is not timeframe:
+            raise ValueError("ML feature timeframe must match strategy")
+        return FeatureRequest(feature_id=reference.feature_id,
+            implementation_id=reference.implementation_id, timeframe=reference.timeframe,
+            parameters=(FeatureParameter(name="model_digest", value=reference.parameters[0].value),))
     if reference.feature_type is not FeatureType.INDICATOR:
         raise ValueError("registered features require INDICATOR feature_type")
     request = FeatureRequest(feature_id=reference.feature_id,
