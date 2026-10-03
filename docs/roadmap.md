@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–12 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phases 13–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–13 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phases 14–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -160,14 +160,22 @@ network isolation, exact coefficients and execution/risk integration.
 
 No dependency was added. Scaling, training metrics, classification, automated fold
 orchestration, tuning, boosting libraries, model selection, tracking services and live
-learning are deferred. No Phase 13 provider work is included. See
+learning are deferred. Phase 13 provider infrastructure is implemented separately below. See
 [ml-research.md](ml-research.md) for the implemented scope and limitations.
 
 ## 13. LLM provider abstraction
 
 Purpose: isolate provider-specific APIs from domain and quant code.
 
-Deliverables: text/vision-capable adapter contracts, configuration/secrets boundaries, structured output validation, prompt/model provenance, retries/budgets, and fake-provider tests. Provider integration cannot calculate authoritative financial metrics.
+Implemented: frozen provider-neutral request/response, message, prompt provenance,
+identity, capability, usage and invocation-policy contracts; an async provider
+protocol and thin client with capability checks, response validation, bounded
+transient retries and per-response usage limits; canonical JSON Schema transport
+and strict Pydantic structured-output validation; deterministic scripted fake and
+offline tests. Future image references are typed declarations only. No vendor SDK,
+real provider calls, strategy/chart interpretation or orchestration is included.
+Provider output remains untrusted and cannot calculate authoritative financial
+metrics. See [llm-provider-abstraction.md](llm-provider-abstraction.md).
 
 ## 14. Natural-language strategy interpretation
 

@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–12 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk and Phase 12 offline ML research described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–13 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -465,7 +465,17 @@ ML predictions are inputs to an explicit strategy specification and deterministi
 
 ### AI and multimodal interpretation
 
-A provider-agnostic adapter will support text and vision requests with structured output validation. Record provider/model identifier, prompt version, relevant parameters, input provenance, interpretation output, and uncertainty. External provider selection, privacy policy, retention, and upload limits remain implementation decisions.
+Phase 13 implements `quantlab.llm`: frozen request/response and prompt-provenance
+contracts, explicit provider/model capabilities, an async provider protocol, strict
+Pydantic structured output, bounded transient retries, per-response usage checks
+and a deterministic offline fake. Image references are typed future inputs; no
+image loading or interpretation exists. The package imports no quant engines and
+has no SDK dependencies or credential fields. LLM output is untrusted and never
+directly creates fills, risk decisions, authoritative financial metrics or account
+state. See [the implemented provider boundary](llm-provider-abstraction.md).
+
+Real provider adapters, strategy/chart interpretation, orchestration, external
+provider selection, privacy policy, retention and upload limits remain future work.
 
 Treat chart uploads, extracted text, and provider responses as untrusted content. Uploaded text must never become privileged orchestration instructions. Validate file types and sizes at the future upload boundary and associate each image with its explanation. Multiple images form a versioned input bundle with explicit ordering/context.
 
