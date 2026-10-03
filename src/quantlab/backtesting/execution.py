@@ -1,7 +1,8 @@
 """Next-open deterministic pricing only; no rules, future OHLC or accounting."""
-from decimal import Context, Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, DecimalException, localcontext
 
 from pydantic import ValidationError
+from quantlab._decimal import deterministic_context
 from quantlab.data import MarketBar, PriceType
 from .enums import SignalAction
 from .errors import BacktestCompatibilityError, BacktestInputError
@@ -19,7 +20,7 @@ def _next_open_fill(signal: Signal, bar: MarketBar, quantity: Decimal,
     validate_execution_compatibility(bar.price_type, costs)
     buy = signal.action in (SignalAction.ENTER_LONG, SignalAction.EXIT_SHORT)
     try:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             if bar.price_type is PriceType.MID:
                 spread = costs.spread / Decimal("2")
             elif (bar.price_type is PriceType.BID and buy

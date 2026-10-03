@@ -1,7 +1,8 @@
 """Exact causal joins and window-local close-to-close supervised targets."""
 from collections.abc import Iterable
-from decimal import Context, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.data import Instrument, MarketBar, ValidationOptions, validate_dataset
 from quantlab.features import FeatureObservation
 from quantlab.validation.models import ValidationWindow
@@ -72,7 +73,7 @@ def build_dataset(bars: Iterable[MarketBar], features: Iterable[FeatureObservati
         rows = []
         missing = unavailable = boundary = unavailable_label = 0
         cutoff = records[window.end - 1].end_time
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             for index in range(window.start, window.end):
                 bar = records[index]
                 if target is not None and index + target.horizon >= window.end:

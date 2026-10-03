@@ -1,7 +1,8 @@
 """Orchestrate independent existing backtests and analytics, without fitting."""
 from collections.abc import Iterable
-from decimal import Context, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.analytics import AnalyticsConfig, analyze_performance
 from quantlab.backtesting import BacktestConfig, run_backtest
 from quantlab.backtesting.engine import _validate_inputs, _validate_strategy
@@ -61,7 +62,7 @@ def run_holdout(strategy: StrategySpecification, bars: Iterable[MarketBar],
     segment-local; missing early operands stay unavailable. No feature fitting,
     preparation, position carry, forced close or outside-segment fill occurs.
     """
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         try:
             strategy, records, observations, instrument, config, analytics_config = _prepare(
                 strategy, bars, features, instrument, config, analytics_config)
@@ -79,7 +80,7 @@ def run_walk_forward(strategy: StrategySpecification, bars: Iterable[MarketBar],
                      config: BacktestConfig, walk_forward: WalkForwardConfig,
                      analytics_config: AnalyticsConfig | None = None) -> WalkForwardReport:
     """Evaluate fixed approved intent over independent complete sequential folds."""
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         try:
             strategy, records, observations, instrument, config, analytics_config = _prepare(
                 strategy, bars, features, instrument, config, analytics_config)

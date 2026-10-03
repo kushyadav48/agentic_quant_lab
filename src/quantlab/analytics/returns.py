@@ -1,6 +1,7 @@
 """Equity-relative returns and unannualized population statistics."""
-from decimal import Context, Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.backtesting import EquityPoint
 from ._validation import validate_equity
 from .errors import AnalyticsInputError
@@ -16,7 +17,7 @@ def compute_return_statistics(initial_capital: Decimal, curve: tuple[EquityPoint
     capital-relative return remains defined, even for negative ending equity.
     """
     try:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             config = AnalyticsConfig() if config is None else AnalyticsConfig.model_validate(config)
             points = validate_equity(initial_capital, curve)
             previous = initial_capital

@@ -1,7 +1,8 @@
 """Pure batch feature computation on validated chronological canonical bars."""
 from collections.abc import Iterable
-from decimal import Context, ROUND_HALF_EVEN, localcontext
+from decimal import localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.data import Instrument, MarketBar, ValidationOptions, validate_dataset
 from .indicators import Calculation, calculate, simple_returns
 from .models import FeatureKind, FeatureObservation, FeatureParameter, FeatureRequest
@@ -34,7 +35,7 @@ def compute_features(bars: Iterable[MarketBar], requested_features: Iterable[Fea
     if not records:
         return ()
     output: list[FeatureObservation] = []
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         closes = tuple(b.close for b in records)
         returns = simple_returns(closes) if any(d.feature_id in ("simple_return", "rolling_volatility") for d in definitions) else ()
         cache: dict[tuple[str, tuple[FeatureParameter, ...]], tuple[Calculation, ...]] = {}

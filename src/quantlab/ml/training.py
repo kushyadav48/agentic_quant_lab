@@ -1,7 +1,8 @@
 """Small deterministic ridge baseline with exact rational normal equations."""
-from decimal import Context, Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, DecimalException, localcontext
 from fractions import Fraction
 
+from quantlab._decimal import deterministic_context
 from .errors import MLCompatibilityError, MLInputError, MLResearchError
 from .models import MLDataset, MLModelArtifact, MLModelConfig
 
@@ -58,7 +59,7 @@ def train_model(dataset: MLDataset, config: MLModelConfig | None = None) -> MLMo
                for j in range(width)]
         slopes = _solve(matrix, rhs)
         intercept = mean_y - sum(slope * mean for slope, mean in zip(slopes, means))
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             return MLModelArtifact(config=config, feature_schema=dataset.feature_schema,
                 target=dataset.target, instrument_id=dataset.instrument_id,
                 timeframe=dataset.timeframe, price_type=dataset.price_type,

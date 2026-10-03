@@ -1,7 +1,8 @@
 """Explicit approved parameter variants; no overrides, approvals or ranking."""
 from collections.abc import Iterable
-from decimal import Context, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.analytics import AnalyticsConfig
 from quantlab.backtesting import BacktestConfig
 from quantlab.data import Instrument, MarketBar
@@ -33,7 +34,7 @@ def run_parameter_robustness(candidates: Iterable[RobustnessCandidate],
     feature definitions and rule structure are fixed. Baseline is explicit. Every
     candidate uses the same window, initial capital, quantity, costs and analytics.
     """
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         try:
             variants = tuple(RobustnessCandidate.model_validate(c) for c in candidates)
             ids = tuple(c.candidate_id for c in variants)

@@ -1,7 +1,8 @@
 """OOS inference and digest-bound canonical research feature adapters."""
 from collections.abc import Iterable
-from decimal import Context, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.features import FeatureObservation, FeatureParameter
 from quantlab.strategies import FeatureArgument, FeatureReference, FeatureType
 from .errors import MLCompatibilityError, MLInputError, MLResearchError
@@ -29,7 +30,7 @@ def predict_oos(artifact: MLModelArtifact, dataset: MLDataset) -> tuple[MLPredic
         if dataset.window_start < artifact.information_cutoff:
             raise MLCompatibilityError("evaluation window starts before training information cutoff")
         predictions = []
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             for row in dataset.rows:
                 if row.timestamp <= artifact.information_cutoff:
                     raise MLCompatibilityError("OOS decision must strictly follow training information cutoff")

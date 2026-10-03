@@ -22,7 +22,8 @@ import struct
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Context, Decimal, localcontext
+from decimal import Decimal, localcontext
+
 from http.client import HTTPException
 from typing import Annotated, Protocol
 from urllib.error import HTTPError, URLError
@@ -30,6 +31,7 @@ from urllib.request import urlopen
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from quantlab._decimal import deterministic_context
 from ..enums import AssetClass
 from ..models import Instrument, MarketQuote
 from .base import (
@@ -156,7 +158,7 @@ def _to_quote(
     """Translate native prices using validated instrument metadata, not heuristics."""
     timestamp = hour + timedelta(milliseconds=tick.milliseconds)
     # A fixed local context makes integer scaling independent of caller precision.
-    with localcontext(Context(prec=32)):
+    with localcontext(deterministic_context(prec=32)):
         bid = Decimal(tick.bid) * instrument.tick_size
         ask = Decimal(tick.ask) * instrument.tick_size
     return MarketQuote(

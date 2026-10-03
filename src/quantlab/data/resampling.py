@@ -3,10 +3,12 @@ import hashlib
 import json
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from decimal import Context, Decimal, localcontext
+from decimal import Decimal, localcontext
+
 from enum import StrEnum
 from typing import Self
 from pydantic import model_validator
+from quantlab._decimal import deterministic_context
 from .enums import PriceType, Timeframe
 from .models import Instrument, MarketBar, MarketQuote, UtcTimestamp, _DomainModel
 from .validation import Observation, validate_dataset
@@ -115,7 +117,7 @@ def resample(observations: Iterable[Observation], request: ResampleRequest) -> t
                     ((r.bid, r.ask) if quotes else (r.open, r.high, r.low, r.close, r.volume))
                     if value is not None]
         precision = max(v.adjusted() for v in decimals) - min(v.as_tuple().exponent for v in decimals)
-        with localcontext(Context(prec=max(32, precision + len(str(len(group))) + 4))):
+        with localcontext(deterministic_context(prec=max(32, precision + len(str(len(group))) + 4))):
             if quotes:
                 prices = [r.bid if request.price_type is PriceType.BID else
                           r.ask if request.price_type is PriceType.ASK else

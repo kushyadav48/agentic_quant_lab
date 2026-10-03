@@ -1,11 +1,12 @@
 """Deterministic one-position bar replay with a single execution-price boundary."""
 from collections.abc import Iterable, Mapping
 from datetime import datetime
-from decimal import Context, Decimal, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, localcontext
 
 from pydantic import ValidationError
+from quantlab._decimal import deterministic_context
 from quantlab.data import Instrument, MarketBar, ValidationOptions, validate_dataset
-from quantlab.features import FeatureObservation, FeatureRequest, validate_strategy_features
+from quantlab.features import DEFAULT_REGISTRY, FeatureObservation, FeatureRequest, validate_strategy_features
 from quantlab.strategies import ApprovalState, MarketField, MarketOperand, StrategySpecification
 from quantlab.risk import RiskAction, RiskContext, RiskDecision, RiskSide, evaluate_entry_risk
 from .enums import EvaluationResult as E, PositionSide, SignalAction
@@ -66,6 +67,7 @@ def _validate_inputs(bars: Iterable[MarketBar], features: Iterable[FeatureObserv
     seen: set[tuple[str, datetime]] = set()
     previous: datetime | None = None
     by_end = {b.end_time: b for b in records}
+    end_indices = {b.end_time: i for i, b in enumerate(records)}
     delayed_bars = tuple(b for b in records if b.available_at > b.end_time)
     for candidate in features:
         if type(candidate) is not FeatureObservation:
@@ -96,6 +98,17 @@ def _validate_inputs(bars: Iterable[MarketBar], features: Iterable[FeatureObserv
         ending_bar = by_end.get(observation.timestamp)
         if ending_bar is not None and observation.input_start > ending_bar.start_time:
             raise BacktestInputError("feature input_start must include its ending bar")
+        definition = DEFAULT_REGISTRY.definitions.get(observation.implementation_id)
+        if ending_bar is not None and definition is not None:
+            end = end_indices[observation.timestamp]
+            required = definition.required_bars(request)
+            # EMA/RSI retain their seed and all subsequent causal inputs.
+            start = (0 if definition.feature_id in ("ema", "rsi")
+                     else max(0, end + 1 - required))
+            if (observation.input_start > records[start].start_time
+                    or end + 1 < required and observation.input_start >= records[0].start_time):
+                raise BacktestInputError("feature input_start omits required historical dependencies")
+            # Earlier provenance is allowed for features computed before a replay segment.
         # On-time bars are already covered by observation.available_at >= timestamp.
         dependencies = (b for b in delayed_bars if observation.input_start <= b.start_time
                         and b.end_time <= observation.timestamp)
@@ -144,7 +157,7 @@ def run_backtest(strategy: StrategySpecification, bars: Iterable[MarketBar],
     pending: Signal | None = None
     realized = unrealized = Decimal("0")
     digest = strategy.content_digest
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         for index, bar in enumerate(records):
             if pending is not None and pending.action in (SignalAction.ENTER_LONG, SignalAction.ENTER_SHORT):
                 assert position is None

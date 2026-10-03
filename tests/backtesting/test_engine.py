@@ -1,6 +1,6 @@
 """Causality, hand-calculated lifecycles, approval, and strict input contracts."""
 from datetime import time, timedelta
-from decimal import Context, ROUND_DOWN, localcontext
+from decimal import Context, DefaultContext, ROUND_DOWN, getcontext, localcontext
 import socket
 import subprocess
 import sys
@@ -14,7 +14,7 @@ from quantlab.backtesting import (
 from quantlab.data import PriceType, Timeframe
 from quantlab.strategies import (
     Comparison as C, ConstantOperand, Direction, DistanceUnit, FeatureOperand,
-    FeatureReference, FeatureType, FixedDistance, MarketField, MarketOperand,
+    FeatureArgument, FeatureReference, FeatureType, FixedDistance, MarketField, MarketOperand,
     SessionFilter, SideRules,
 )
 from .helpers import (
@@ -428,3 +428,102 @@ def test_feature_observation_wrong_timestamp_is_missing_not_forward_filled():
     shifted = observation.model_copy(update={"timestamp":observation.timestamp+MINUTE/2,
         "available_at":observation.available_at+MINUTE/2})
     assert simulate(spec,series,(shifted,)).signals==()
+
+
+def test_shortened_sma_input_start_cannot_hide_a_delayed_dependency():
+    series = list(bars((110, 110, 110)))
+    series[0] = series[0].model_copy(update={"available_at":START+timedelta(days=1)})
+    spec = strategy(entry=group(rule(left=FeatureOperand(feature_id="fast_sma"))),
+        no_exit=True, features=(reference("fast_sma", period=2),))
+    observation = observations(spec, series)[0]
+    assert observation.input_start == series[0].start_time
+    assert observation.available_at == series[0].available_at
+    assert simulate(spec, series, (observation,)).signals == ()
+
+    premature = observation.model_copy(update={"available_at":series[1].end_time})
+    with pytest.raises(BacktestInputError, match="contributing bar"):
+        simulate(spec, series, (premature,))
+
+    shortened = premature.model_copy(update={"input_start":series[1].start_time})
+    with pytest.raises(BacktestInputError, match="input_start"):
+        leaked = simulate(spec, series, (shortened,))
+        # Before the fix this malformed observation produces a premature entry/fill.
+        assert leaked.signals[0].signal_time == series[1].end_time
+        assert leaked.fills[0].execution_time == series[2].start_time
+        assert leaked.fills[0].action is A.ENTER_LONG
+
+
+def test_backtest_values_independent_of_decimal_default_context():
+    from quantlab.backtesting import ExecutionCostConfig
+
+    series = bars((101, 110))
+    spec = strategy(no_exit=True)
+    config = BacktestConfig(initial_capital=D("1000"), quantity=D("2"),
+        execution_costs=ExecutionCostConfig(commission_per_unit=D("1e-40")))
+    saved = DefaultContext.copy()
+    caller = getcontext()
+    before = (str(caller), caller.traps.copy(), caller.flags.copy())
+    try:
+        expected = simulate(spec, series, config=config)
+        assert expected.fills[0].costs.commission == D("2e-40")
+        DefaultContext.prec = 2
+        DefaultContext.rounding = ROUND_DOWN
+        DefaultContext.Emin = -2
+        DefaultContext.Emax = 6
+        DefaultContext.clamp = 1
+        DefaultContext.capitals = 0
+        for signal in DefaultContext.traps:
+            DefaultContext.traps[signal] = False
+            DefaultContext.flags[signal] = True
+        actual = simulate(spec, series, config=config)
+        assert actual.fills[0].costs.commission == D("2e-40")
+        assert actual == expected
+        assert (str(caller), caller.traps.copy(), caller.flags.copy()) == before
+    finally:
+        for field in ("prec", "rounding", "Emin", "Emax", "clamp", "capitals"):
+            setattr(DefaultContext, field, getattr(saved, field))
+        DefaultContext.traps.update(saved.traps)
+        DefaultContext.flags.update(saved.flags)
+
+
+@pytest.mark.parametrize("implementation,parameter,start", [
+    ("open", None, 5), ("high", None, 5), ("low", None, 5), ("close", None, 5),
+    ("simple_return", None, 4), ("log_return", None, 4),
+    ("sma", "period", 4), ("ema", "period", 0), ("rsi", "period", 0),
+    ("rolling_volatility", "window", 3),
+])
+def test_builtin_provenance_checks_the_full_required_history(implementation, parameter, start):
+    declaration = FeatureReference(feature_id="alias", implementation_id=implementation,
+        feature_type=FeatureType.INDICATOR, parameters=() if parameter is None else
+        (FeatureArgument(name=parameter, value=2),))
+    spec = strategy(entry=group(rule(left=FeatureOperand(feature_id="alias"))),
+        features=(declaration,), no_exit=True)
+    series = list(bars((110, 120, 130, 140, 150, 160)))
+    series[start] = series[start].model_copy(update={"available_at":START+timedelta(days=1)})
+    observation = observations(spec, series)[-1]
+    assert observation.input_start == series[start].start_time
+    assert simulate(spec, series, (observation,)).signals == ()
+    premature = observation.model_copy(update={"available_at":observation.timestamp})
+    with pytest.raises(BacktestInputError, match="contributing bar"):
+        simulate(spec, series, (premature,))
+    shortened = observation.model_copy(update={"input_start":series[start].start_time+MINUTE/2})
+    with pytest.raises(BacktestInputError, match="input_start"):
+        simulate(spec, series, (shortened,))
+    # Computed history preceding a replay segment remains supported.
+    assert simulate(spec, series[-1:], (observation,)).signals == ()
+
+
+@pytest.mark.parametrize("implementation,parameter", [
+    ("simple_return", None), ("log_return", None), ("sma", "period"),
+    ("ema", "period"), ("rsi", "period"), ("rolling_volatility", "window"),
+])
+def test_builtin_provenance_rejects_claimed_history_inside_warmup(implementation, parameter):
+    declaration = FeatureReference(feature_id="alias", implementation_id=implementation,
+        feature_type=FeatureType.INDICATOR, parameters=() if parameter is None else
+        (FeatureArgument(name=parameter, value=2),))
+    spec = strategy(features=(declaration,))
+    series = bars((110, 120, 130))
+    observation = observations(spec, series)[0].model_copy(update={
+        "timestamp":series[0].end_time, "input_start":series[0].start_time})
+    with pytest.raises(BacktestInputError, match="input_start"):
+        simulate(spec, series, (observation,))

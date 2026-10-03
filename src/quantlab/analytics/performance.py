@@ -1,7 +1,8 @@
 """Auditable analytics over completed output; no execution or signal decisions."""
 from datetime import timedelta
-from decimal import Context, Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.backtesting import BacktestResult, ClosedTrade
 from ._validation import validate_result
 from .drawdown import compute_drawdown_statistics
@@ -55,7 +56,7 @@ def analyze_performance(result: BacktestResult,
     accumulator: Decimal addition/subtraction is nonassociative at precision 34.
     """
     try:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             result = validate_result(result)
             config = AnalyticsConfig() if config is None else AnalyticsConfig.model_validate(config)
             return PerformanceReport(strategy_id=result.strategy_id,

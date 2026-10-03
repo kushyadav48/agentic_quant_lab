@@ -1,8 +1,9 @@
 """Frozen research events and results; no brokerage cash/margin semantics."""
-from decimal import Context, Decimal, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, localcontext
 from typing import Annotated, Self
 
 from pydantic import Field, model_validator
+from quantlab._decimal import deterministic_context
 from quantlab.data import PriceType, Timeframe
 from quantlab.data.models import Identifier, NonNegativeDecimal, PositiveDecimal, UtcTimestamp, _DomainModel
 from quantlab.strategies.schema import Digest
@@ -29,16 +30,16 @@ class CostBreakdown(_DomainModel):
 
     @property
     def explicit_cost(self) -> Decimal:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             return self.commission + self.fees
 
     @property
     def total_cost(self) -> Decimal:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             return self.spread_cost + self.slippage_cost + self.commission + self.fees
 
     def plus(self, other: "CostBreakdown") -> "CostBreakdown":
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             return CostBreakdown(**{name: getattr(self, name) + getattr(other, name)
                                    for name in type(self).model_fields})
 
@@ -83,7 +84,7 @@ class Fill(_DomainModel):
         # Adjacent half-open bars share the close/open instant, but not the bar.
         if self.execution_time < self.signal_time:
             raise ValueError("execution cannot precede signal")
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             buy = self.action in (SignalAction.ENTER_LONG, SignalAction.EXIT_SHORT)
             expected = self.reference_price
             if self.spread_adjustment:
@@ -115,7 +116,7 @@ class Position(_DomainModel):
     def entry_timing(self) -> Self:
         if self.entry_time < self.entry_signal_time:
             raise ValueError("entry cannot precede signal")
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             change = (self.entry_price - self.entry_reference_price if self.side is PositionSide.LONG
                       else self.entry_reference_price - self.entry_price)
             if change * self.quantity != self.entry_costs.spread_cost + self.entry_costs.slippage_cost:
@@ -141,7 +142,7 @@ class ClosedTrade(Position):
     def exit_timing(self) -> Self:
         if self.exit_signal_time <= self.entry_time or self.exit_time < self.exit_signal_time:
             raise ValueError("exit signal must follow entry; execution must follow signal")
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             gross = ((self.exit_price - self.entry_price) if self.side is PositionSide.LONG
                      else (self.entry_price - self.exit_price)) * self.quantity
             reference = ((self.exit_reference_price - self.entry_reference_price)

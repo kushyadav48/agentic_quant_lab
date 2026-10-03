@@ -1,7 +1,8 @@
 """Chronological observation-count windows; never shuffle, repair or sort bars."""
 from collections.abc import Iterable
-from decimal import Context, ROUND_HALF_EVEN, localcontext
+from decimal import localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.data import Instrument, MarketBar, ValidationOptions, validate_dataset
 from .errors import ResearchValidationInputError
 from .models import HoldoutConfig, ValidationWindow, WalkForwardConfig, WalkForwardFold, WalkForwardMode, WindowMetadata
@@ -33,7 +34,7 @@ def _metadata(records: tuple[MarketBar, ...], window: ValidationWindow) -> Windo
 def holdout_windows(bars: Iterable[MarketBar], config: HoldoutConfig, *,
                     instrument: Instrument) -> tuple[WindowMetadata, WindowMetadata]:
     """Audit explicit train/test indices; gaps and unused prefix/suffix are allowed."""
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         try:
             config = HoldoutConfig.model_validate(config)
             records = _validated_bars(bars, instrument)
@@ -49,7 +50,7 @@ def walk_forward_folds(bars: Iterable[MarketBar], config: WalkForwardConfig, *,
     Step may be smaller than test_size (overlap) or greater (gaps). Overlapping
     OOS runs remain independent and descriptive totals count repeated exposures.
     """
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         try:
             config = WalkForwardConfig.model_validate(config)
             records = _validated_bars(bars, instrument)

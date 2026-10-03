@@ -1,12 +1,13 @@
 """Decimal descriptions of independent runs, never portfolio compounding."""
-from decimal import Context, Decimal, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.analytics import PerformanceReport
 from .models import DescriptiveSummary
 
 
 def summarize(reports: tuple[PerformanceReport, ...]) -> DescriptiveSummary:
-    with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+    with localcontext(deterministic_context()):
         values = tuple(r.returns.cumulative_return for r in reports)
         ordered = sorted(values)
         n = len(values)

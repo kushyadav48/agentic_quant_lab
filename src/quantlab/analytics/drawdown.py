@@ -1,6 +1,7 @@
 """Initial-capital high-water marks and observed underwater episodes."""
-from decimal import Context, Decimal, DecimalException, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, DecimalException, localcontext
 
+from quantlab._decimal import deterministic_context
 from quantlab.backtesting import EquityPoint
 from ._validation import validate_equity
 from .errors import AnalyticsInputError
@@ -17,7 +18,7 @@ def compute_drawdown_statistics(initial_capital: Decimal,
     observation, with recovery_time=None.
     """
     try:
-        with localcontext(Context(prec=34, rounding=ROUND_HALF_EVEN)):
+        with localcontext(deterministic_context()):
             points = validate_equity(initial_capital, curve)
             peak, peak_time = initial_capital, None
             series, episodes = [], []
