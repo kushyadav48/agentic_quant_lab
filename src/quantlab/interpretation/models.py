@@ -87,12 +87,15 @@ class StructuredInterpretation(_Contract):
     clarifications: tuple[Clarification, ...] = Field(max_length=32)
     evidence: tuple[SourceEvidence, ...] = Field(max_length=32)
 
+    def _has_evidence(self) -> bool:
+        return bool(self.evidence)
+
     @model_validator(mode="after")
     def check_status(self) -> Self:
         if self.status is InterpretationStatus.READY:
-            if self.draft is None or self.clarifications or not self.evidence:
+            if self.draft is None or self.clarifications or not self._has_evidence():
                 raise ValueError("READY requires draft and evidence, without ambiguities")
-        elif self.draft is not None or not self.clarifications or self.evidence:
+        elif self.draft is not None or not self.clarifications or self._has_evidence():
             raise ValueError("clarification requires questions and forbids a draft or evidence")
         return self
 

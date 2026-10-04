@@ -60,7 +60,8 @@ not tokenizer estimates or vendor context-window guarantees.
 `ImageReference` is a forward-compatible declaration of an opaque caller-owned
 asset ID and PNG/JPEG/WebP MIME type. It contains no image bytes or URL transport.
 Nothing fetches or interprets it; media declarations are not byte validation.
-Phase 15 must implement upload validation, storage, privacy and adapter translation.
+Phase 15 uses these references for multimodal interpretation; upload validation,
+storage, privacy and real adapter translation remain deferred.
 
 Generation temperature is optional Decimal in [0, 2], top-p is optional Decimal
 in (0, 1], and seed is an optional bounded nonnegative integer. Python float,
@@ -237,7 +238,7 @@ subprocess import tests deny network and credential lookups. AST/import tests ke
 quantitative engines and vendor SDKs outside this boundary. Tests require no
 provider account and perform no real retry sleeps.
 
-Phase 14 strategy interpretation/prompts, Phase 15 chart/image interpretation and
-uploads, and Phase 16 agents/LangGraph/orchestration remain deferred. MCP, trading
+Phase 14 text and Phase 15 chart/image interpretation are implemented above this
+boundary. Uploads and Phase 16 agents/LangGraph/orchestration remain deferred. MCP, trading
 tool calls, backtest/risk invocation, paper trading, portfolio management, APIs,
 autonomous research and real provider adapters are outside Phase 13.

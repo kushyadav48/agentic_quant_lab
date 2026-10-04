@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–14 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phases 15–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–15 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phases 16–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -195,13 +195,29 @@ revalidation, catalogue parity and deterministic replay. See
 [natural-language-strategy-interpretation.md](natural-language-strategy-interpretation.md).
 
 Semantic fidelity still requires human review. Persistence, automatic clarification
-loops, real model evaluation and all Phase 15+ features remain deferred.
+loops and real model evaluation remain deferred. Phase 15 extends these contracts below; Phase 16+ remains planned.
 
 ## 15. Chart image + text multimodal interpretation
 
 Purpose: support single-image and multi-image research submissions.
 
-Deliverables: validated image/text bundles, per-image explanations, ordering/context metadata, multimodal interpretation, uncertainty and rule-to-input traceability, and a reviewable interpretation record. Require human approval of the exact resulting strategy version; test untrusted uploaded instructions and unresolved chart context.
+**Implemented.** Strict immutable inputs accept 1–16 ordered opaque Phase 13 image
+references and optional text. Prompt `quantlab.multimodal-strategy`, version `1`,
+requires image and structured capabilities. Visual evidence and exact text quotes
+bind proposed material fields to input; explicit text/image and image/image
+conflicts require clarification and cannot yield READY. The existing Phase 14
+draft/status semantics, Phase 5 conversion and supported vocabulary are reused.
+Results retain input/order, exact request, raw response, provider/model identity
+and an unapproved DRAFT or questions, with deterministic replay validation.
+Screenshots are untrusted research inputs, never authoritative market data.
+Offline FakeProvider tests cover malformed output, binding, conflicts, injection,
+approval isolation, no market-data construction or quant-engine authority, no
+network/vendor/OCR dependencies and state isolation. See
+[multimodal-strategy-interpretation.md](multimodal-strategy-interpretation.md).
+
+Real adapters (including Qwen3-VL/Ollama), upload/storage/privacy services, OCR,
+chart-to-OHLC extraction and real-model quality evaluation remain deferred. No
+automatic approval, optimization or chart trading is implemented.
 
 ## 16. LangGraph research/orchestration agents
 

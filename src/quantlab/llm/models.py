@@ -40,7 +40,7 @@ class TextContent(_Contract):
 class ImageReference(_Contract):
     """Future vision input: caller-owned opaque asset reference, never fetched here.
 
-    MIME is a declaration, not byte validation. Phase 15 owns upload validation.
+    MIME is a declaration, not byte validation. Upload validation is deferred.
     No URL, bytes, credentials, download or image interpretation is implemented.
     """
     kind: Literal["image"] = "image"

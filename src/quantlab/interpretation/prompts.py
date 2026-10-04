@@ -40,7 +40,10 @@ strategy_text for each populated material draft field (instruments, timeframe,
 direction, long, short, session, features, parameters, stop_loss, take_profit,
 sizing_reference). Quotes must support the entire field, including values and
 absence of exits when deliberate. Evidence is for human review, not approval.
-Use Phase 5 direction long/short/both with exactly corresponding side rules.
+"""
+
+# Shared executable vocabulary instructions. Keep the Phase 14 prompt unchanged.
+STRATEGY_CONTRACT_PROMPT = """Use Phase 5 direction long/short/both with exactly corresponding side rules.
 Rule groups: all/any, 1..64 flat rules; operands market/feature/parameter/constant.
 Comparisons: gt/ge/lt/le/eq/crosses_above/crosses_below. Boolean operands require
 eq against another boolean. Feature/parameter references must resolve. Offsets
@@ -65,6 +68,8 @@ No approval, author, strategy identity, provenance or timestamp fields are allow
 """ + "\nIndicator catalogue: " + json.dumps(INDICATORS, separators=(",", ":")) + (
     "\nExternal ML implementation: " + ML_IMPLEMENTATION
 )
+
+SYSTEM_PROMPT += STRATEGY_CONTRACT_PROMPT
 
 
 def validate_input(value: InterpretationInput) -> InterpretationInput:

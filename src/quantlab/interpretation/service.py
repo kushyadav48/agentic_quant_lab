@@ -11,28 +11,38 @@ from quantlab.strategies import Origin, Provenance, StrategyContent, StrategySpe
 from .errors import InterpretedStrategyError, InterpretationContractError
 from .models import (
     EvidenceField, InterpretationInput, InterpretationResult, InterpretationStatus,
-    StructuredInterpretation,
+    StrategyDraft, StructuredInterpretation,
 )
 from .prompts import PROMPT_ID, PROMPT_VERSION, build_request, validate_input
 from .vocabulary import validate_vocabulary
+
+
+def _required_evidence(draft: StrategyDraft) -> set[str]:
+    return {field for field in get_args(EvidenceField) if getattr(draft, field) not in (None, ())}
 
 
 def _proposal(value: InterpretationInput, output: StructuredInterpretation) -> StrategySpecification | None:
     if output.status is InterpretationStatus.NEEDS_CLARIFICATION:
         return None
     draft = output.draft
-    required = {field for field in get_args(EvidenceField) if getattr(draft, field) not in (None, ())}
+    required = _required_evidence(draft)
     if (set(e.field for e in output.evidence) != required
             or any(e.quote not in value.strategy_text for e in output.evidence)):
         raise InterpretationContractError()
+    return _convert_draft(draft, strategy_id=value.strategy_id, version=value.version,
+        provenance=Provenance(origin=Origin.NATURAL_LANGUAGE, source_reference=value.input_reference,
+            notes=f"Interpretation prompt {PROMPT_ID} version {PROMPT_VERSION}"))
+
+
+def _convert_draft(draft: StrategyDraft, *, strategy_id: str, version: int,
+                   provenance: Provenance) -> StrategySpecification:
+    """Shared text/vision conversion; Phase 5 and the Phase 14 allowlist own semantics."""
     try:
         # Constructors recursively revalidate all nested Phase 5 objects; no copy
         # update, bypass construction, coercion, expression evaluation or repair.
-        content = StrategyContent(**draft.model_dump(mode="python"), provenance=Provenance(
-            origin=Origin.NATURAL_LANGUAGE, source_reference=value.input_reference,
-            notes=f"Interpretation prompt {PROMPT_ID} version {PROMPT_VERSION}"))
+        content = StrategyContent(**draft.model_dump(mode="python"), provenance=provenance)
         validate_vocabulary(content)
-        return StrategySpecification(strategy_id=value.strategy_id, version=value.version,
+        return StrategySpecification(strategy_id=strategy_id, version=version,
                                      content=content)
     except (ValueError, TypeError, OverflowError):
         raise InterpretedStrategyError() from None

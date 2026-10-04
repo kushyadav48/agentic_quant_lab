@@ -205,7 +205,10 @@ Future Ollama/Qwen-class or cloud adapters can implement the same Phase 13
 output capability. No real adapter or local-model quality evaluation is included.
 Complex schemas may exceed a particular model's capacity; failures remain closed.
 
-Chart/image interpretation (15), agents (16), MCP (17), paper trading (18), portfolio
+Chart/image interpretation (15) is implemented using the same draft, status,
+conversion and vocabulary contracts; see
+[multimodal interpretation](multimodal-strategy-interpretation.md).
+Agents (16), MCP (17), paper trading (18), portfolio
 (19), journal (20), FastAPI (21), frontend (22), E2E (23), deployment (24) and final
 portfolio polish (25) remain deferred. So do automatic approval, profitability
 ranking, strategy optimization, alpha search, self-modification, real-money
