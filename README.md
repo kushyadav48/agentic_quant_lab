@@ -2,7 +2,7 @@
 
 An AI-assisted, multi-market quantitative research and paper-trading platform, designed to turn human research ideas into explicit, reviewable strategies and evaluate them using deterministic Python calculations.
 
-**Status: early development — Phases 1–15 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. A separate Phase 10 validation layer adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity reports. Phase 11 adds mandatory deterministic ALLOW/REJECT entry controls with configurable quantity, reference-notional, equity-fraction, minimum-equity and causal drawdown limits plus a frozen audit trail. Phase 12 adds offline, window-bounded supervised datasets, deterministic ridge regression artifacts and strictly OOS model predictions as canonical strategy features. Phase 13 adds provider-neutral async LLM contracts, strict structured output, bounded invocation policies and an offline scripted provider. Phase 14 adds natural-language interpretation into unapproved strategy proposals or explicit clarification questions, with strict domain validation and invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image references, visual evidence, explicit conflicts and unapproved proposals through the same strategy contracts. Real provider adapters, image upload/storage, agents, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
+**Status: early development — Phases 1–16 implemented.** The repository contains the documentation/package foundation, strict market-data domain contracts, and a Dukascopy historical tick-ingestion adapter producing canonical bid/ask quotes for EUR/USD and USD/JPY. Tests use synthetic payloads and mocked HTTP. Dataset quality reports, fixed-UTC causal OHLC aggregation/resampling, and immutable local SQLite storage are implemented. Immutable strategy specification contracts, declarative rules and exact-version approval are implemented. A causal Decimal feature engine with explicit availability and structural strategy-reference checks is implemented. An approved-strategy deterministic bar backtester now implements causal bar-close signals, next-open fills, one-position long/short lifecycles, and Decimal research equity. Deterministic configurable spread, adverse slippage, per-unit commission and per-fill fees extend that execution boundary with auditable reference/execution prices and gross/net P&L. A separate deterministic performance analytics layer consumes completed BacktestResult records to report net trade statistics, account returns, population return volatility, drawdown episodes, holding durations and explicitly configured Sharpe ratios. A separate Phase 10 validation layer adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity reports. Phase 11 adds mandatory deterministic ALLOW/REJECT entry controls with configurable quantity, reference-notional, equity-fraction, minimum-equity and causal drawdown limits plus a frozen audit trail. Phase 12 adds offline, window-bounded supervised datasets, deterministic ridge regression artifacts and strictly OOS model predictions as canonical strategy features. Phase 13 adds provider-neutral async LLM contracts, strict structured output, bounded invocation policies and an offline scripted provider. Phase 14 adds natural-language interpretation into unapproved strategy proposals or explicit clarification questions, with strict domain validation and invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image references, visual evidence, explicit conflicts and unapproved proposals through the same strategy contracts. Phase 16 adds bounded LangGraph interpretation routing, terminal clarification and explicit human interrupt/resume; acceptance retains an unapproved DRAFT pending separate Phase 5 approval. Real provider adapters, image upload/storage, MCP, APIs, and dashboard functionality remain planned. Successful live downloading has not been verified; a manual probe received HTTP 429.
 
 ## Planned capabilities
 
@@ -31,12 +31,12 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 | Core | Python 3.11+, Pydantic for typed domain models | Strict Pydantic market-data contracts implemented |
 | Quant/data | NumPy, Pandas and/or Polars, SciPy; Statsmodels where useful | Canonical model sequences for Phase 4; dataframe adoption deferred |
 | ML | Offline baseline and auditable research artifacts | Phase 12 exact-rational ridge regression; broader ML tooling deferred |
-| AI | Provider-neutral LLM boundary | Phase 13 provider infrastructure, Phase 14 text and Phase 15 chart + text interpretation implemented; real adapters, LangGraph and MCP planned |
+| AI | Provider-neutral LLM boundary | Phase 13 provider infrastructure, Phase 14/15 interpretation and Phase 16 bounded LangGraph review implemented; real adapters and MCP planned |
 | Backend/storage | FastAPI, PostgreSQL, storage adapters | Local SQLite dataset adapter implemented; FastAPI/PostgreSQL planned |
 | Frontend | Separate professional web dashboard, likely React/Next.js | Planned; final framework not selected |
 | Engineering | pytest, Git, structured logging; Docker and CI later | pytest development extra and existing Git metadata |
 
-Pydantic is the sole runtime dependency at this stage. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. Phase 4 validation/resampling/storage also use the standard library plus existing Pydantic models; SQLite requires no new dependency. Phase 12 ridge fitting uses standard-library Fraction and Decimal, requiring no ML dependency or downloads. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
+Pydantic and LangGraph are direct runtime dependencies. LangGraph adds its required transitive packages; no LangChain model wrappers or LangSmith service are used. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. Phase 4 validation/resampling/storage also use the standard library plus existing Pydantic models; SQLite requires no new dependency. Phase 12 ridge fitting uses standard-library Fraction and Decimal, requiring no ML dependency or downloads. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
 
 ## Repository structure
 
@@ -51,12 +51,14 @@ agentic_quant_lab/
 │   ├── llm-provider-abstraction.md
 │   ├── natural-language-strategy-interpretation.md
 │   ├── multimodal-strategy-interpretation.md
+│   ├── agent-orchestration.md
 │   └── roadmap.md
 ├── src/
 │   └── quantlab/
 │       ├── __init__.py
 │       ├── llm/  # Phase 13 contracts, async client and fake
 │       ├── interpretation/  # Phase 14 text and Phase 15 chart + text proposals
+│       ├── orchestration/  # Phase 16 bounded LangGraph human review
 │       └── data/
 │           ├── __init__.py
 │           ├── enums.py
@@ -266,6 +268,17 @@ authoritative price history or execution/risk inputs. Full artifacts support rep
 consistency checks. Tests use only the offline FakeProvider; future local
 Qwen3-VL/Ollama adapters can use the same provider interface. Image transport,
 storage and OCR are not implemented. See [Phase 15 contracts and limitations](docs/multimodal-strategy-interpretation.md).
+
+## Bounded agent orchestration
+
+Phase 16 adds `quantlab.orchestration`: deterministic text/multimodal routing through
+the existing interpretation services, terminal clarification, and a real LangGraph
+human-review interrupt. `build_research_graph`, `start_workflow` and `resume_workflow`
+use strict immutable requests, snapshots and exact-proposal review decisions.
+Acceptance ends at `ACCEPTED_FOR_APPROVAL`; the proposal remains DRAFT pending
+separate Phase 5 approval. Checkpoints are in memory, with caller-owned thread IDs.
+No quant engine, MCP tool, autonomous loop or real provider adapter is added.
+See [the Phase 16 API, trust boundaries and limitations](docs/agent-orchestration.md).
 
 ## Roadmap summary
 

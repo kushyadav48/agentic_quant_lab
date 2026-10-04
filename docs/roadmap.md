@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–15 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phases 16–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–16 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phases 17–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -195,7 +195,7 @@ revalidation, catalogue parity and deterministic replay. See
 [natural-language-strategy-interpretation.md](natural-language-strategy-interpretation.md).
 
 Semantic fidelity still requires human review. Persistence, automatic clarification
-loops and real model evaluation remain deferred. Phase 15 extends these contracts below; Phase 16+ remains planned.
+loops and real model evaluation remain deferred. Phase 15 extends these contracts below; Phase 16 adds bounded human review below; Phase 17+ remains planned.
 
 ## 15. Chart image + text multimodal interpretation
 
@@ -223,7 +223,24 @@ automatic approval, optimization or chart trading is implemented.
 
 Purpose: coordinate bounded research workflows around existing deterministic services.
 
-Deliverables: graph state, checkpoints, artifact references, cancellation/retry/budget policies, and human review nodes. Use service-facing tool interfaces initially; test that agents cannot grant approval or override risk. No autonomous strategy promotion or V2 evolution loops.
+**Implemented.** `quantlab.orchestration` adds the official LangGraph runtime,
+strict immutable requests/snapshots, deterministic input-type branches calling
+Phase 14/15 unchanged, terminal clarification and a real human-review interrupt.
+Typed accept/reject/revise decisions bind caller-owned thread, strategy ID,
+version and digest. Acceptance ends at `ACCEPTED_FOR_APPROVAL`, retaining the
+original DRAFT and requiring separate Phase 5 validation/approval. No quant
+engine or MCP tool executes, and there is no autonomous loop or automatic rewrite.
+
+Fresh in-memory checkpointers, replay checks, duplicate-start/resume protection
+and serialized handle calls support bounded offline workflows. Phase 13 still
+owns provider calls, retries, limits and errors. Tracing flags are refused;
+credentials are never read. Tests execute actual pause/resume cycles and deny
+I/O, approval and quant authority. Verification: 106 Phase 16 tests, 658 Phase
+13–16 tests, and 1,826 full-suite tests passed under Python 3.11.9 with LangGraph
+1.2.12. See [agent-orchestration.md](agent-orchestration.md).
+
+Durable persistence, authentication, distributed cancellation/recovery, real
+adapters and tool integration remain deferred. Phases 17+ remain planned.
 
 ## 17. MCP quant tools
 

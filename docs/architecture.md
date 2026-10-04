@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–15 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–16 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation; later functional layers remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17+ remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -502,7 +502,7 @@ validation alone. Shared data enums do not load storage/calculation services;
 public data-service exports now load on demand with unchanged object identities.
 See [Phase 15 architecture and limitations](multimodal-strategy-interpretation.md).
 
-Real provider adapters, image transport, orchestration, external provider selection,
+Real provider adapters, image transport, external provider selection,
 privacy policy, retention and upload limits remain future work.
 
 Treat chart uploads, extracted text, and provider responses as untrusted content. Uploaded text must never become privileged orchestration instructions. Validate file types and sizes at the future upload boundary and associate each image with its explanation. Multiple images form a versioned input bundle with explicit ordering/context.
@@ -511,7 +511,28 @@ Interpretation exposes chart observations, proposed rules, unresolved ambiguitie
 
 ### LangGraph agents
 
-Agents will coordinate research tasks, request tool operations, and explain persisted results. State should contain artifact/run references, bounded task progress, errors, and checkpoints. Define tool permissions, cancellation, retry limits, time/cost budgets, and human review checkpoints.
+**Implemented Phase 16:** `quantlab.orchestration` uses an explicit acyclic
+StateGraph: input-type routing, existing Phase 14/15 interpretation, terminal
+clarification or one human-review interrupt, then accept/reject/revise terminal
+outcomes. The model cannot choose nodes or tools. Strict immutable snapshots bind
+original inputs, invocation artifacts, proposals, review payloads and decisions.
+The bounded typed graph state transports one JSON snapshot and revalidates it on
+every read; clients/checkpointers are injected dependencies outside business state.
+
+Caller-owned threads use fresh in-memory checkpointers. Duplicate starts, stale
+decisions, wrong threads and inconsistent replay artifacts fail closed. The
+application API serializes calls per handle, isolates inherited runtime contexts
+and refuses enabled tracing flags without reading credentials. LangGraph is the
+runtime; Phase 13 remains the only provider abstraction. Phase 14/15 prompts,
+conversion, evidence rules and provider error/retry semantics are unchanged.
+
+An explicit human APPROVE ends at `ACCEPTED_FOR_APPROVAL` with the original DRAFT;
+separate Phase 5 validation and exact-version approval remain required. Neither
+rejection nor revision calls a provider again. No MCP, quant execution or durable
+application persistence is implemented here. Future explicit bounded tool nodes,
+production storage, authentication and cancellation/recovery services remain
+separate work. See [agent-orchestration.md](agent-orchestration.md) for API examples,
+checkpoint ownership, replay limits, dependency details and offline verification.
 
 An agent cannot grant approval, change risk policy, deploy live trading, or promote an unreviewed strategy through a privileged route. Agents consume deterministic tool outputs with provenance instead of treating their own generated numbers as financial evidence.
 

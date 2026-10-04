@@ -224,8 +224,9 @@ may exceed a model's ability; failures remain closed.
 
 Deferred: real local/cloud adapters, image upload/storage/privacy/retention services,
 byte/MIME validation, OCR, chart-to-OHLC extraction, reviewer authentication,
-persistence, automatic clarification loops and real model evaluation. Agents (16),
-MCP (17), paper trading (18), portfolio (19), journal (20), FastAPI (21), frontend
+durable persistence, automatic clarification loops and real model evaluation.
+Bounded orchestration (16) now adds human review; see
+[agent-orchestration.md](agent-orchestration.md). MCP (17), paper trading (18), portfolio (19), journal (20), FastAPI (21), frontend
 (22), E2E (23), deployment (24) and final polish (25) remain unimplemented. No
 automatic approval, automatic chart trading, strategy optimization, self-evolution
 or real-money execution is included.
