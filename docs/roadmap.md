@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–13 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phases 14–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1–14 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phases 15–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -181,7 +181,21 @@ metrics. See [llm-provider-abstraction.md](llm-provider-abstraction.md).
 
 Purpose: translate text research ideas into reviewable strategy drafts.
 
-Deliverables: structured proposal output, assumptions/ambiguity reporting, validation against StrategySpecification, interpretation provenance, and explicit human approval before backtesting or paper trading. Test unsupported rules, missing information, and edits invalidating approval.
+**Implemented.** `quantlab.interpretation` adds frozen bounded input, deterministic
+prompt `quantlab.natural-language-strategy` version `1`, Phase 13 structured output,
+READY/NEEDS_CLARIFICATION contracts, source-quote review evidence, deterministic
+Phase 5 semantic validation and bounded feature vocabulary including existing
+ML_SIGNAL declarations. READY creates only an unapproved DRAFT using existing
+StrategySpecification and canonical digest contracts. Clarification creates no
+proposal; no material assumptions are silently supplied. Full invocation artifacts
+retain provider/model, input and prompt provenance. No quant engine, real vendor
+adapter, automatic approval or network call is added. Offline FakeProvider tests
+cover malformed output, unsupported intent, approval isolation, retries, deep
+revalidation, catalogue parity and deterministic replay. See
+[natural-language-strategy-interpretation.md](natural-language-strategy-interpretation.md).
+
+Semantic fidelity still requires human review. Persistence, automatic clarification
+loops, real model evaluation and all Phase 15+ features remain deferred.
 
 ## 15. Chart image + text multimodal interpretation
 
