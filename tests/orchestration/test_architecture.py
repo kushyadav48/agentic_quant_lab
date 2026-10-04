@@ -26,7 +26,9 @@ def test_dependency_and_explicit_exports():
     assert tuple(map(int, version("langgraph").split(".")[:2])) >= (1, 2)
     assert sys.version_info[:2] >= (3, 11)
     project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
-    assert project["dependencies"] == ["pydantic>=2.10,<3", "langgraph>=1.2.12,<2"]
+    assert project["dependencies"] == [
+        "pydantic>=2.10,<3", "langgraph>=1.2.12,<2", "mcp>=2.3,<3",
+    ]
     assert len(orchestration.__all__) == len(set(orchestration.__all__))
     assert all(hasattr(orchestration, name) for name in orchestration.__all__)
 

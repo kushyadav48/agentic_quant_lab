@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–16 implemented; subsequent functional layers are planned.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1–16 implemented; Phase 17 MCP foundation is in progress.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17+ remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 is in progress; Phase 18+ remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -395,7 +395,7 @@ flowchart TD
     Storage --> UI
 ```
 
-Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; no network services or tools exist yet.
+Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; the Phase 17 tool surface currently supports only strategy-content validation over local stdio.
 
 ## Architectural layers
 
@@ -537,6 +537,35 @@ checkpoint ownership, replay limits, dependency details and offline verification
 An agent cannot grant approval, change risk policy, deploy live trading, or promote an unreviewed strategy through a privileged route. Agents consume deterministic tool outputs with provenance instead of treating their own generated numbers as financial evidence.
 
 ### MCP and application tools
+
+**Phase 17 in progress:** `quantlab.mcp.build_mcp_server()` returns a fresh
+official MCP 2.x `MCPServer` without starting transport. The guarded server
+entry point runs local stdio only. The sole registered tool is
+`validate_strategy_content(content=...)`, with structured output containing
+`valid`, `content_digest`, and sanitized validation issues.
+
+The adapter accepts a raw StrategyContent JSON object. A strict MCP-only wire
+contract rejects non-JSON Python values; JSON encoding rejects non-finite
+numbers. `StrategyContent.model_validate_json(..., strict=True)` then decodes
+wire enums, arrays, and decimal strings into canonical immutable domain values
+and runs the existing Phase 5 semantic validator. Core Python strictness and
+quantitative services are unchanged. Success returns the existing canonical
+SHA-256 content digest. Failure returns no digest and fixed issue messages in
+deterministic order; exception messages, submitted values, and unknown field
+names are not echoed.
+
+The SDK input schema deliberately accepts a raw object with a contract
+description: invalid domain fields reach the adapter and return structured
+issues instead of failing SDK argument validation. The dedicated boundary
+request checks JSON wire types without copying the domain schema. Results are
+strict, frozen, and enforce consistency between validity, digest, and issues.
+Validation never creates a StrategySpecification or approval record, repairs
+input, starts orchestration, changes account state, or executes quant engines.
+Human-review resume and Phase 5 approval are not model-callable tools.
+
+The remaining Phase 17 service adapters, run lifecycle, auditing, idempotency,
+and bounded agent integration are still planned. No HTTP deployment,
+authentication, paper trading, or portfolio operation is implemented here.
 
 Expose narrow, typed operations over application services, such as loading approved specifications, starting backtests, querying run status, and retrieving computed analytics. Use validated schemas, permitted resource identifiers, explicit error responses, audit records, and idempotency for operations that create runs or simulated orders.
 
