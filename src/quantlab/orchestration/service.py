@@ -12,7 +12,9 @@ from quantlab.llm import LLMClient, ModelIdentity
 from .enums import WorkflowStatus
 from .errors import OrchestrationContractError, OrchestrationInputError, WorkflowResumeError
 from .graph import create_graph, read_state, write_state
-from .models import HumanReviewDecision, OrchestrationRequest, WorkflowSnapshot, decision_matches
+from .models import (
+    HumanReviewDecision, OrchestrationRequest, WorkflowReference, WorkflowSnapshot, decision_matches,
+)
 
 
 class ResearchGraph:
@@ -107,3 +109,15 @@ async def resume_workflow(graph: ResearchGraph, *, thread_id: str,
             raise WorkflowResumeError()
         await graph._invoke(Command(resume=decision.model_dump_json()), thread_id)
         return await graph._snapshot(thread_id)
+
+
+async def get_workflow_snapshot(graph: ResearchGraph, *, thread_id: str) -> WorkflowSnapshot:
+    """Read validated retained state; never invoke, resume or approve a workflow."""
+    if type(graph) is not ResearchGraph:
+        raise OrchestrationInputError()
+    try:
+        reference = WorkflowReference(thread_id=thread_id)
+    except ValidationError:
+        raise OrchestrationInputError() from None
+    async with graph._lock:
+        return await graph._snapshot(reference.thread_id)

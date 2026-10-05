@@ -37,7 +37,7 @@ def test_server_exposes_only_the_bounded_tool_surface():
     assert [tool.name for tool in asyncio.run(server.list_tools())] == TOOL_NAMES
 
 
-def test_mcp_package_does_not_import_orchestration():
+def test_only_trusted_application_handoff_imports_orchestration():
     for path in PACKAGE_ROOT.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
 
@@ -49,7 +49,7 @@ def test_mcp_package_does_not_import_orchestration():
             else:
                 continue
 
-            assert all(
+            assert path.name == "review_integration.py" or all(
                 not name.startswith("quantlab.orchestration")
                 for name in names
             ), f"{path.name} must not expose human-review orchestration through MCP"
@@ -70,14 +70,20 @@ def test_mcp_package_contains_no_eval_or_exec_calls():
 
 def test_only_permitted_public_services_and_contracts_are_imported():
     allowed = {
-        "quantlab": {"analytics", "backtesting", "data", "features", "risk"},
-        "quantlab.strategies": {"StrategyContent", "StrategySpecification"},
+        "quantlab": {"analytics", "backtesting", "data", "features", "ml", "risk", "validation"},
+        "quantlab.strategies": {"ApprovalState", "StrategyContent", "StrategySpecification"},
         "quantlab.data": {"DataQualityReport", "Instrument", "MarketBar", "MarketQuote",
                           "ResampleRequest", "ValidationOptions"},
         "quantlab.features": {"FeatureObservation", "FeatureRequest"},
         "quantlab.risk": {"RiskConfig", "RiskContext", "RiskDecision"},
         "quantlab.analytics": {"AnalyticsConfig", "PerformanceReport"},
         "quantlab.backtesting": {"BacktestConfig", "BacktestResult"},
+        "quantlab.ml": {"ForwardReturnTarget", "MLDataset", "MLFeatureSchema", "MLModelArtifact",
+                        "MLModelConfig", "MLPrediction"},
+        "quantlab.validation": {"HoldoutConfig", "HoldoutResult", "RobustnessCandidate",
+                                "RobustnessReport", "ValidationWindow", "WalkForwardConfig",
+                                "WalkForwardReport"},
+        "quantlab.orchestration": {"ResearchGraph", "WorkflowStatus", "get_workflow_snapshot"},
     }
     for path in PACKAGE_ROOT.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -109,7 +115,7 @@ socket.create_connection = forbidden
 import quantlab.mcp
 assert quantlab.mcp.__all__ == ['build_mcp_server']
 for module in ('quantlab.orchestration', 'quantlab.data.storage',
-               'quantlab.ml', 'quantlab.validation', 'quantlab.paper',
+               'quantlab.paper',
                'quantlab.account', 'quantlab.portfolio'):
     assert module not in sys.modules, module
 """
@@ -153,6 +159,12 @@ def test_no_network_filesystem_execution_approval_or_unbounded_operations():
                 if name == "compute_features":
                     assert "registry" not in {kw.arg for kw in node.keywords}
                 if name == "run_backtest":
+                    if path.name == "operations.py":
+                        assert isinstance(node.func, ast.Attribute)
+                        assert isinstance(node.func.value, ast.Name)
+                        assert node.func.value.id == "tools"
+                        assert len(node.args) == 1 and not node.keywords
+                        continue
                     # Permit only the one public-service call in the new adapter.
                     assert path.name == "tools.py"
                     assert isinstance(node.func, ast.Attribute)
@@ -165,3 +177,30 @@ def test_no_network_filesystem_execution_approval_or_unbounded_operations():
                     assert {kw.arg for kw in node.keywords} == {"instrument", "config"}
                     backtest_calls.append(node)
     assert len(backtest_calls) == 1
+
+
+def test_operation_dispatch_and_handoff_are_finite_and_never_registered_as_approval():
+    tree = ast.parse((PACKAGE_ROOT / "operations.py").read_text(encoding="utf-8"))
+    dispatcher = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                      and node.name == "_execute")
+    assert not any(isinstance(node, (ast.For, ast.While, ast.AsyncFor)) for node in ast.walk(dispatcher))
+    calls = [node for node in ast.walk(dispatcher) if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Attribute)]
+    assert {node.func.attr for node in calls} == {
+        "run_backtest", "run_holdout", "run_walk_forward", "run_parameter_robustness",
+        "build_ml_dataset", "train_ml_model", "predict_ml_oos", "ml_predictions_to_features",
+        "analyze_performance",
+    }
+    bridge = ast.parse((PACKAGE_ROOT / "review_integration.py").read_text(encoding="utf-8"))
+    assert not any(isinstance(node, (ast.For, ast.While, ast.AsyncFor)) for node in ast.walk(bridge))
+    assert sum(isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+               and node.func.attr == "execute" for node in ast.walk(bridge)) == 2
+    forbidden = {"resume_workflow", "start_workflow", "build_research_graph", "create_task", "run"}
+    for node in ast.walk(bridge):
+        if isinstance(node, ast.Call):
+            name = node.func.id if isinstance(node.func, ast.Name) else (
+                node.func.attr if isinstance(node.func, ast.Attribute) else "")
+            assert name not in forbidden
+    composition = ast.parse((PACKAGE_ROOT / "server.py").read_text(encoding="utf-8"))
+    assert not any(isinstance(node, ast.ImportFrom) and node.module == "review_integration"
+                   for node in ast.walk(composition))

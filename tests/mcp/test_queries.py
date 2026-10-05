@@ -29,7 +29,10 @@ from quantlab.mcp.models import (
 from tests.analytics.helpers import four_trades
 from tests.features.helpers import INSTRUMENT, bars
 from tests.risk.test_models import context
-from .helpers import TOOL_NAMES, valid_backtest_request, valid_strategy_content
+from .helpers import (
+    ORIGINAL_TOOL_NAMES as TOOL_NAMES, TOOL_NAMES as FINAL_TOOL_NAMES,
+    valid_backtest_request, valid_strategy_content,
+)
 
 
 # The original five queries retain their prohibition on backtest execution.
@@ -519,8 +522,10 @@ def test_real_client_server_protocol_lists_and_calls_all_seven_tools(mode, input
             with anyio.fail_after(30):
                 async with Client(build_mcp_server(), mode=mode) as client:
                     listed = await client.list_tools()
-                    assert [tool.name for tool in listed.tools] == TOOL_NAMES
+                    assert [tool.name for tool in listed.tools] == FINAL_TOOL_NAMES
                     for tool in listed.tools:
+                        if tool.name not in TOOL_NAMES:
+                            continue
                         key = "content" if tool.name == TOOL_NAMES[0] else "request"
                         request = valid_strategy_content() if key == "content" else inputs[tool.name]
                         expected = getattr(tools, tool.name)(request)
@@ -581,8 +586,10 @@ def test_real_stdio_subprocess_lists_and_calls_all_seven_tools(inputs):
         with anyio.fail_after(45):
             async with Client(parameters, mode="legacy") as client:
                 listed = await client.list_tools()
-                assert [tool.name for tool in listed.tools] == TOOL_NAMES
+                assert [tool.name for tool in listed.tools] == FINAL_TOOL_NAMES
                 for tool in listed.tools:
+                    if tool.name not in TOOL_NAMES:
+                        continue
                     key = "content" if tool.name == TOOL_NAMES[0] else "request"
                     request = valid_strategy_content() if key == "content" else inputs[tool.name]
                     result = await client.call_tool(tool.name, {key: request})

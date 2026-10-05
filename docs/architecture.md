@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1–16 implemented; Phase 17 MCP foundation is in progress.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -10,7 +10,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 is in progress; Phase 18+ remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phase 18+ remain unimplemented. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -395,7 +395,7 @@ flowchart TD
     Storage --> UI
 ```
 
-Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; the Phase 17 tool surface currently supports strategy-content validation, five stateless deterministic queries, and stateless deterministic backtest execution over local stdio.
+Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; the Phase 17 tool surface supports eighteen explicit local stdio tools, deterministic research/ML adapters and bounded process-local operation metadata. A trusted application handoff preserves separate human review and exact-version approval.
 
 ## Architectural layers
 
@@ -538,129 +538,153 @@ An agent cannot grant approval, change risk policy, deploy live trading, or prom
 
 ### MCP and application tools
 
-**Phase 17 IN PROGRESS (checkpoint 3):** `quantlab.mcp.build_mcp_server()` returns a fresh
-official MCP 2.x `MCPServer` without starting transport. The guarded server
-entry point runs local stdio only. The existing tool remains
-`validate_strategy_content(content=...)`, with structured output containing
-`valid`, `content_digest`, and sanitized validation issues.
+**Phase 17 COMPLETE (implementation and external runtime verification passed).**
+`quantlab.mcp.build_mcp_server()` constructs a fresh official MCP 2.x `MCPServer`
+with an isolated process-local research-operation namespace. Importing the
+package neither builds a server nor starts transport. The guarded entry point
+runs stdio only. The server is a trusted local application boundary, without
+network deployment, authenticated identities or durable storage.
 
-The adapter accepts a raw StrategyContent JSON object. A strict MCP-only wire
-contract rejects non-JSON Python values; JSON encoding rejects non-finite
-numbers. `StrategyContent.model_validate_json(..., strict=True)` then decodes
-wire enums, arrays, and decimal strings into canonical immutable domain values
-and runs the existing Phase 5 semantic validator. Core Python strictness and
-quantitative services are unchanged. Success returns the existing canonical
-SHA-256 content digest. Failure returns no digest and fixed issue messages in
-deterministic order; exception messages, submitted values, and unknown field
-names are not echoed.
+The exact explicit allowlist is:
 
-The SDK input schema deliberately accepts a raw object with a contract
-description: invalid domain fields reach the adapter and return structured
-issues instead of failing SDK argument validation. The generic boundary
-checker validates JSON wire types without copying the domain schema. Results are
-strict, frozen, and enforce consistency between validity, digest, and issues.
-Strategy validation never creates a StrategySpecification or approval record,
-repairs input, starts orchestration, changes account state, or executes quant engines.
-Human-review resume and Phase 5 approval are not model-callable tools.
+| Tools | Existing authority |
+| --- | --- |
+| `validate_strategy_content` | Phase 5 content validation/digest only |
+| `validate_market_data`, `resample_market_data` | Phase 4 data services |
+| `compute_features` | Phase 6 trusted default registry |
+| `evaluate_entry_risk` | Phase 11 unchanged ALLOW/REJECT decision |
+| `analyze_performance` | Phase 9 analytics of supplied canonical results |
+| `run_backtest` | Phase 7-11 approved-strategy deterministic replay |
+| `run_holdout`, `run_walk_forward`, `run_parameter_robustness` | Phase 10 chronological research validation |
+| `build_ml_dataset`, `train_ml_model`, `predict_ml_oos`, `ml_predictions_to_features` | Phase 12 causal datasets, exact-rational ridge, strict OOS inference and provenance-bearing features |
+| `submit_research_operation`, `execute_research_operation`, `get_research_operation`, `cancel_research_operation` | Phase 17 bounded research metadata |
 
-The exact seven-tool allowlist is `validate_strategy_content`,
-`validate_market_data`, `resample_market_data`, `compute_features`,
-`evaluate_entry_risk`, `analyze_performance`, and `run_backtest`.
-Each service adapter accepts one
-`request` JSON object. Its published input schema reuses existing domain
-contracts; runtime wire checking precedes strict JSON decoding into canonical
-models. SDK argument convenience parsing is bypassed so stringified objects,
-tuples, bytes, arbitrary Python objects, non-string keys, cycles, and non-finite
-numbers cannot be silently coerced. Missing/extra tool arguments and contract
-failures expose only sanitized messages. Rust strict-end regex anchors are
-translated equivalently in published schemas only; core validators are unchanged.
+`server.py` composes these tools explicitly; it never discovers plugins/tools.
+`tools.py` remains stateless thin public-service adapters. `research_models.py`
+reuses canonical domain inputs/results and adds admission limits. There is no
+ML math, rule evaluation, risk override, engine, registry, estimator, callback,
+code, dataset path, pickle/joblib, ranking or winner selection in these adapters.
+Holdouts/folds retain their independent replay semantics; robustness retains
+separately approved structural variants in supplied order. ML retains exact
+ordered feature schemas, causal availability, label boundaries, training
+information cutoffs, unlabeled OOS windows and model/input digests. Domain
+results are returned unchanged inside frozen success/value/issues envelopes.
 
-`server.py` only composes the seven adapters and selects stdio. The generic
-`decoding.encode_json_object` uses a strict Pydantic `TypeAdapter` for finite
-JSON objects, followed by each canonical contract's JSON-mode validation.
-It does not reuse a strategy request to validate unrelated requests.
+The original seven tools retain their strict contracts and behavior. A risk
+REJECT or invalid quality report remains an authoritative successful service
+result. Canonical StrategySpecification approval records must bind exact ID,
+version and content digest; the backtester requires APPROVED. MCP never invokes
+approval transitions. Contract-valid supplied records are not authenticated
+human credentials. The local application must control access to trusted handles
+and approved inputs. Analytics never reconstructs fills/accounting.
 
-`registration.py` isolates the required lower-level SDK seam. In installed MCP
-2.3.0, `MCPServer.tool()` / `add_tool()` have no argument-validation customization
-option: `FuncMetadata.validate_arguments()` first parses stringified objects,
-then validates a generated Python argument model. Strict domain models require
-JSON-mode decoding instead, and SDK argument failures can echo caller data.
-The exported `Tool.from_function()` and `MCPServer(tools=...)` registration path
-therefore uses a narrow `FuncMetadata` subclass that passes raw values to the
-adapter and rejects missing/extra outer arguments using fixed error metadata.
-This metadata hook is a lower-level SDK dependency, not a guarantee of the
-high-level decorator API. No private server/manager attributes are accessed.
-Real SDK behavioral tests guard this seam across supported SDK releases.
+`decoding.py` checks finite JSON through a strict public Pydantic TypeAdapter,
+then validates canonical contracts in strict JSON mode. Tuples, bytes, objects,
+cycles, non-string keys, non-finite values, stringified requests and unknown
+nested fields are rejected without repair. Issues contain fixed messages and
+schema-only locations, never submitted values or exception text. Inputs remain
+unchanged and all domain Python strictness remains intact.
 
-Input schemas use public Pydantic `create_model()` to wrap reused request
-contracts and manage all `$defs` / references. There is no custom Pydantic core
-schema hook. Regex translation remains necessary because the canonical digest
-uses Rust's `\z`, which JSON Schema validators do not support. SDK output model
-validation, structured serialization and unexpected-error handling are retained.
+`registration.py` retains the isolated MCP 2.3 lower-level SDK seam. Public
+MCPServer.tool/add_tool have no argument-validation customization and SDK
+convenience parsing would coerce stringified objects. Tool.from_function and
+MCPServer(tools=...) therefore use the narrow FuncMetadata validation hook;
+missing/extra outer arguments expose fixed metadata. Public Pydantic create_model
+publishes canonical request schemas and manages references. Rust strict-end
+anchors are translated equivalently in published JSON Schema only. SDK output
+validation, serialization and sanitized unexpected-error handling are retained;
+no private server/manager attributes are accessed. Actual SDK Client legacy/auto
+and stdio subprocess tests guard this seam.
 
-The adapters call only public services: `data.validate_dataset`, `data.resample`,
-`features.compute_features`, `risk.evaluate_entry_risk`,
-`analytics.analyze_performance`, and `backtesting.run_backtest`.
-They contain no quantitative algorithms.
-Quality validation retains observations and reports ordering/duplicates without
-repair. Resampling uses the existing `ResampleRequest` and Phase 4 semantics.
-Features always use the public service's trusted default registry; callers
-cannot inject a registry or implementations. Entry risk uses supplied canonical
-context/config and returns the decision unchanged. Analytics only validates and
-analyzes a supplied `BacktestResult`; that analytics adapter does not execute a
-backtest, recompute
-fills, or change accounting.
+`operation_models.py` defines nine discriminated kinds: backtest, holdout,
+walk_forward, robustness, ml_dataset, ml_training, ml_prediction,
+ml_prediction_features and performance. `operations.py` dispatches those kinds
+through a finite explicit branch list to the same adapters. No callable/job
+registration or background execution exists. `operation_tools.py` binds strict
+wire adapters to one ResearchOperations instance per server. The trusted human
+application may own its own instance for the direct handoff.
 
-Checkpoint 3 adds `run_backtest(request=...)`, a synchronous stateless replay
-adapter. `BacktestExecutionRequest` reuses `StrategySpecification`, `MarketBar`,
-`FeatureObservation`, `Instrument`, and required `BacktestConfig`; omitted features
-use the public service's empty tuple default. Execution-cost and risk defaults
-remain those of `BacktestConfig`. No raw `StrategyContent`, approval boolean,
-standalone digest, registry, evaluator, engine or executable callback substitutes
-for these contracts. JSON decoding validates the supplied existing approval
-record; MCP never constructs an approval action or invokes approval transitions.
-Canonical Phase 5 validation binds approval to strategy ID, version and content
-digest; the backtester additionally requires `APPROVED` state. A canonical but
-unapproved specification reaches that existing service gate and is rejected.
+Submission validates and admits work, returning an immutable queued snapshot.
+Only explicit execution moves queued -> running -> completed/failed; only
+queued work can move to cancelled. Synchronous running services cannot be
+interrupted safely. Cancellation never produces partial success. Repeated
+completed execution returns the exact retained result, repeated expected failed
+execution returns fixed input issues, and repeated internal failure remains an
+unexpected SDK error. Cancelled execution and concurrent running execution are
+rejected. Repeated cancellation is idempotent. Completed/failed/cancelled states
+cannot reopen. Locks serialize admission and transitions while service execution
+runs outside the metadata lock, allowing concurrent status/cancellation checks.
 
-The adapter calls public `backtesting.run_backtest` exactly once after request
-decoding and returns `AdapterResult[BacktestResult]`. Success means execution
-completed, even when the run loses money or risk rejects every entry. Deterministic
-Python retains approval/compatibility checks, rule evaluation, causal signal and
-fill timing, costs, risk gating and all equity/P&L construction. MCP does not
-fabricate events or mutate account/portfolio state. Only the public `BacktestError`
-family becomes a fixed service-input issue; unrelated exceptions and invalid
-service output remain unexpected MCP tool failures.
+A finally cleanup records terminal internal_failure metadata for unexpected
+failures/interrupts while preserving exception propagation unchanged. Public BacktestError, ResearchValidationError,
+MLResearchError, RiskInputError and AnalyticsInputError families become fixed
+service-input issues in their respective adapters. Only existing resampling and
+feature APIs intentionally catch their documented ValueError contract. Output
+construction/validation stays outside these input catches. Lifecycle execute
+returns success=False on a domain rejection; status retrieval returns the failed
+snapshot with its classification. Failure snapshots never retain raw exceptions.
 
-New structured results contain `success`, `value`, and sanitized `issues`.
-Success means the service completed: a quality report can contain errors, and a
-risk decision can be REJECT with zero approved quantity. Values reuse the exact
-domain report/decision types or canonical bar/feature tuples. Expected service
-input rejections return fixed issues; unexpected internal failures propagate to
-the SDK's sanitized tool-failure path. Inputs remain unchanged. No approval,
-account, paper, or portfolio authority is exposed.
+`canonical.py` streams bounded finite JSON for identity/result serialization.
+Idempotency keys are bounded caller strings. Only their SHA-256 binding is
+retained/exposed. Identity hashes canonical validated operation kind/inputs,
+expanded defaults and optional trusted workflow context; sorted finite JSON,
+context-independent normalized Decimal spelling and canonical UTC timestamps
+avoid repr/object identity and ambient Decimal rounding. Same key plus same
+canonical input returns the current immutable operation/result; any kind/input/
+context difference conflicts. Terminal keys/results are never evicted/overwritten.
+Separate processes/server builds have independent namespaces.
 
-Resampling and feature computation use `ValueError` for input rejections,
-so only that service call is caught. Risk and analytics catch their public
-`RiskInputError` / `AnalyticsInputError` respectively; an unrelated `ValueError`
-escaping those APIs still fails the tool. Result construction is outside every
-service-input catch, so a broken adapter result cannot become an input failure.
-Tests include direct SDK calls, public `Client` legacy/modern protocol dispatch,
-and an actual stdio subprocess, including sanitized protocol error results.
+Each snapshot contains immutable strategy ID/version/content-digest bindings
+where applicable, request/key digests, state, optional result/failure and a
+maximum three-event frozen audit tuple. Events include legal previous/current
+states, sequence, UTC timestamp, identity, trusted workflow binding where
+applicable and result digest or domain_rejection/internal_failure. Snapshots
+validate the transition chain and result SHA-256 binding. Result retention is
+canonical immutable JSON text of validated AdapterResult domain output; callers
+may decode that text as JSON. Audit omits raw requests, keys, prompts, images,
+secrets, paths and exception messages. This is research provenance, not a
+financial/account ledger or Phase 20 journal. Operational timestamps vary with
+execution time; quantitative results and canonical identities remain deterministic.
 
-Backtest calls create no run IDs, jobs, lifecycle state, files, database records,
-or autonomous tool loops. Lifecycle/status/cancellation, audit/provenance and
-idempotency infrastructure remain unimplemented. Phase 16 orchestration is not
-connected to MCP and no ML MCP adapter is implemented.
+Namespaces admit at most 32 total identities and reject capacity rather than
+forget idempotency history. New research requests are limited to 1 MiB serialized
+input, 5,000 bars/dataset rows/predictions, 100,000 supplied features, 32 ML columns,
+16 robustness candidates and 64 walk-forward folds where applicable. Canonical
+Decimal expansion is bounded at 4,096 digits to limit serialization and rational
+input size. Tracked backtest/performance requests also use these admission bounds;
+the existing seven stateless adapters are unchanged. Each retained result is
+limited to 4 MiB; overflow fails terminally and propagates as an unexpected error.
+Capacity includes terminal records until the application discards the namespace.
+There is no persistence, TTL eviction, recovery, authentication or distributed
+cancellation. Direct stateless computations create no metadata; tracked operations
+are the opt-in surface for lifecycle, idempotency and audit.
 
-Remaining Phase 17 work includes broader research-run adapters, ML research
-adapters, run lifecycle/status/cancellation, provenance/audit records, idempotency,
-and bounded Phase 16 ↔ MCP integration. No HTTP deployment,
-authentication, paper trading, or portfolio operation is implemented here.
+`review_integration.py` is an application-only module, absent from server
+composition and package startup imports. Its explicit edges are retained
+ACCEPTED_FOR_APPROVAL -> separate approved exact-version specification ->
+tracked backtest -> tracked performance analysis. `run_reviewed_backtest` reads
+actual retained graph state using the read-only public get_workflow_snapshot API,
+never a caller-submitted review claim. It binds thread, strategy ID, version and
+content digest, retains the graph's DRAFT proposal and performs no approval
+transition. It executes at most two services, stops after an unsuccessful
+backtest, and never invokes a provider, resumes review, revises, recursively
+dispatches or opens an MCP transport. Clarification, pending review, rejection,
+revision and mismatched approved specifications cannot enter this handoff.
+Derived keys and audit context include a hashed thread binding; repeated calls
+reuse both results. There is no MCP tool for human review/resume or this handoff.
 
-Expose narrow, typed operations over application services, such as loading approved specifications, starting backtests, querying run status, and retrieving computed analytics. Use validated schemas, permitted resource identifiers, explicit error responses, audit records, and idempotency for operations that create runs or simulated orders.
+The final pass adds tests for adapters, strict contracts, admission, service
+errors, idempotency, concurrency, cancellation, terminal audit/result immutability,
+retained review binding and the entire allowlist through real Client legacy/auto
+and actual stdio. The previously committed baseline passed 390 MCP / 2,216 full
+repository tests externally under Python 3.11/MCP 2.3.0. Final-pass runtime verification passed in WSL under Python 3.11.17: 753 MCP + orchestration tests and 2473 full repository tests passed. The local Windows venv remains unsuitable for runtime verification, but this no longer blocks Phase 17 sign-off. Implementation completion is not a
+claim that the expanded runtime suites have passed.
 
-Do not expose arbitrary shell/code execution or an unrestricted database interface. Long-running work should return a run identifier and support status/cancellation. The same approval, authorization, and risk checks must apply whether a request arrives through MCP, the API, or a direct internal service.
+Phase 18+ remain planned: paper trading/feed/account state, portfolios, trading
+journal, HTTP API/dashboard, broader E2E phase, deployment and demo polish.
+Phase 17 has no live trading, financial state mutation, arbitrary filesystem,
+network/database/shell/code tools or autonomous agent loop. Durable/authenticated
+operation infrastructure belongs to later architecture work.
 
 ### Deterministic risk
 

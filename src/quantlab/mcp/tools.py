@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 from pydantic import Field, ValidationError
 
-from quantlab import analytics, backtesting, data, features, risk
+from quantlab import analytics, backtesting, data, features, ml, risk, validation
 from quantlab.strategies import StrategyContent
 
 from .decoding import decode_request, encode_json_object, service_issue
@@ -16,6 +16,12 @@ from .models import (
     MarketDataValidationRequest, MarketDataValidationResult,
     PerformanceAnalysisRequest, PerformanceAnalysisResult,
     StrategyValidationIssue, StrategyValidationResult,
+)
+from .research_models import (
+    DatasetAdapterResult, DatasetRequest, HoldoutAdapterResult, HoldoutRequest,
+    PredictionAdapterResult, PredictionFeaturesAdapterResult, PredictionFeaturesRequest,
+    PredictionRequest, RobustnessAdapterResult, RobustnessRequest, TrainingAdapterResult,
+    TrainingRequest, WalkForwardAdapterResult, WalkForwardRequest,
 )
 
 
@@ -177,3 +183,96 @@ def run_backtest(request: dict[str, Any]) -> BacktestExecutionResult:
     except backtesting.BacktestError:
         return BacktestExecutionResult(success=False, issues=service_issue())
     return BacktestExecutionResult(success=True, value=value)
+
+
+def run_holdout(request: dict[str, Any]) -> HoldoutAdapterResult:
+    """Independent chronological in-sample/OOS replays of approved intent."""
+    decoded, issues = decode_request(request, HoldoutRequest)
+    if decoded is None:
+        return HoldoutAdapterResult(success=False, issues=issues)
+    try:
+        value = validation.run_holdout(decoded.strategy, decoded.bars, decoded.features,
+            instrument=decoded.instrument, config=decoded.config, split=decoded.split,
+            analytics_config=decoded.analytics_config)
+    except validation.ResearchValidationError:
+        return HoldoutAdapterResult(success=False, issues=service_issue())
+    return HoldoutAdapterResult(success=True, value=value)
+
+
+def run_walk_forward(request: dict[str, Any]) -> WalkForwardAdapterResult:
+    """Bounded fixed-intent chronological folds; no fitting or winner selection."""
+    decoded, issues = decode_request(request, WalkForwardRequest)
+    if decoded is None:
+        return WalkForwardAdapterResult(success=False, issues=issues)
+    try:
+        value = validation.run_walk_forward(decoded.strategy, decoded.bars, decoded.features,
+            instrument=decoded.instrument, config=decoded.config, walk_forward=decoded.walk_forward,
+            analytics_config=decoded.analytics_config)
+    except validation.ResearchValidationError:
+        return WalkForwardAdapterResult(success=False, issues=service_issue())
+    return WalkForwardAdapterResult(success=True, value=value)
+
+
+def run_parameter_robustness(request: dict[str, Any]) -> RobustnessAdapterResult:
+    """Explicit separately approved structural variants, in supplied order."""
+    decoded, issues = decode_request(request, RobustnessRequest)
+    if decoded is None:
+        return RobustnessAdapterResult(success=False, issues=issues)
+    try:
+        value = validation.run_parameter_robustness(decoded.candidates, decoded.bars,
+            decoded.features, baseline_candidate_id=decoded.baseline_candidate_id,
+            window=decoded.window, instrument=decoded.instrument, config=decoded.config,
+            analytics_config=decoded.analytics_config)
+    except validation.ResearchValidationError:
+        return RobustnessAdapterResult(success=False, issues=service_issue())
+    return RobustnessAdapterResult(success=True, value=value)
+
+
+def build_ml_dataset(request: dict[str, Any]) -> DatasetAdapterResult:
+    """Causal supervised joins using canonical bars/features and explicit windows."""
+    decoded, issues = decode_request(request, DatasetRequest)
+    if decoded is None:
+        return DatasetAdapterResult(success=False, issues=issues)
+    try:
+        value = ml.build_dataset(decoded.bars, decoded.features, instrument=decoded.instrument,
+            feature_schema=decoded.feature_schema, window=decoded.window, target=decoded.target)
+    except ml.MLResearchError:
+        return DatasetAdapterResult(success=False, issues=service_issue())
+    return DatasetAdapterResult(success=True, value=value)
+
+
+def train_ml_model(request: dict[str, Any]) -> TrainingAdapterResult:
+    """Existing exact-rational ridge training; no estimator or executable inputs."""
+    decoded, issues = decode_request(request, TrainingRequest)
+    if decoded is None:
+        return TrainingAdapterResult(success=False, issues=issues)
+    try:
+        value = ml.train_model(decoded.dataset, decoded.config)
+    except ml.MLResearchError:
+        return TrainingAdapterResult(success=False, issues=service_issue())
+    return TrainingAdapterResult(success=True, value=value)
+
+
+def predict_ml_oos(request: dict[str, Any]) -> PredictionAdapterResult:
+    """Predictions strictly after the supplied artifact's information cutoff."""
+    decoded, issues = decode_request(request, PredictionRequest)
+    if decoded is None:
+        return PredictionAdapterResult(success=False, issues=issues)
+    try:
+        value = ml.predict_oos(decoded.artifact, decoded.dataset)
+    except ml.MLResearchError:
+        return PredictionAdapterResult(success=False, issues=service_issue())
+    return PredictionAdapterResult(success=True, value=value)
+
+
+def ml_predictions_to_features(request: dict[str, Any]) -> PredictionFeaturesAdapterResult:
+    """Canonical prediction features retaining model/cutoff/input provenance."""
+    decoded, issues = decode_request(request, PredictionFeaturesRequest)
+    if decoded is None:
+        return PredictionFeaturesAdapterResult(success=False, issues=issues)
+    try:
+        value = ml.predictions_to_features(decoded.predictions, artifact=decoded.artifact,
+            feature_id=decoded.feature_id)
+    except ml.MLResearchError:
+        return PredictionFeaturesAdapterResult(success=False, issues=service_issue())
+    return PredictionFeaturesAdapterResult(success=True, value=value)

@@ -6,11 +6,13 @@ from .errors import (
 from .models import (
     HumanReviewDecision, HumanReviewRequest, OrchestrationRequest, WorkflowSnapshot,
 )
-from .service import ResearchGraph, build_research_graph, resume_workflow, start_workflow
+from .service import (
+    ResearchGraph, build_research_graph, get_workflow_snapshot, resume_workflow, start_workflow,
+)
 
 __all__ = [
     "InterpretationRoute", "ReviewAction", "WorkflowStatus", "OrchestrationContractError",
     "OrchestrationError", "OrchestrationInputError", "WorkflowResumeError",
     "HumanReviewDecision", "HumanReviewRequest", "OrchestrationRequest", "WorkflowSnapshot",
-    "ResearchGraph", "build_research_graph", "resume_workflow", "start_workflow",
+    "ResearchGraph", "build_research_graph", "get_workflow_snapshot", "resume_workflow", "start_workflow",
 ]

@@ -1,9 +1,16 @@
 """Shared MCP test helpers."""
 
-TOOL_NAMES = [
+ORIGINAL_TOOL_NAMES = [
     "validate_strategy_content", "validate_market_data", "resample_market_data",
     "compute_features", "evaluate_entry_risk", "analyze_performance",
     "run_backtest",
+]
+
+TOOL_NAMES = ORIGINAL_TOOL_NAMES + [
+    "run_holdout", "run_walk_forward", "run_parameter_robustness", "build_ml_dataset",
+    "train_ml_model", "predict_ml_oos", "ml_predictions_to_features",
+    "submit_research_operation", "execute_research_operation", "get_research_operation",
+    "cancel_research_operation",
 ]
 
 

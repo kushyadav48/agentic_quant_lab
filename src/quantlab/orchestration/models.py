@@ -32,6 +32,10 @@ class OrchestrationRequest(_Contract):
                 else InterpretationRoute.MULTIMODAL)
 
 
+class WorkflowReference(_Contract):
+    thread_id: Identifier
+
+
 class ReviewBinding(_Contract):
     thread_id: Identifier
     strategy_id: Identifier

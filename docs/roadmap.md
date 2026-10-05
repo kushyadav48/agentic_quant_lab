@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1–16 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 is in progress; Phases 18–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1 through 17 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 implementation is COMPLETE and externally runtime-verified; Phases 18–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -195,7 +195,7 @@ revalidation, catalogue parity and deterministic replay. See
 [natural-language-strategy-interpretation.md](natural-language-strategy-interpretation.md).
 
 Semantic fidelity still requires human review. Persistence, automatic clarification
-loops and real model evaluation remain deferred. Phase 15 extends these contracts below; Phase 16 adds bounded human review below; Phase 17+ remains planned.
+loops and real model evaluation remain deferred. Phase 15 extends these contracts below; Phase 16 adds bounded human review below; Phase 17 adds bounded tools below; Phase 18+ remains planned.
 
 ## 15. Chart image + text multimodal interpretation
 
@@ -240,45 +240,97 @@ I/O, approval and quant authority. Verification: 106 Phase 16 tests, 658 Phase
 1.2.12. See [agent-orchestration.md](agent-orchestration.md).
 
 Durable persistence, authentication, distributed cancellation/recovery, real
-adapters and tool integration remain deferred. Phases 17+ remain planned.
+provider adapters remain deferred. Phase 17 adds the bounded application handoff
+below; Phase 18+ remain planned.
 
 ## 17. MCP quant tools
 
 Purpose: expose existing quant application services through typed agent tools.
 
-**IN PROGRESS — checkpoint 3 implemented.** The local stdio MCP 2.x surface
-exposes exactly `validate_strategy_content`, `validate_market_data`,
-`resample_market_data`, `compute_features`, `evaluate_entry_risk`,
-`analyze_performance`, and `run_backtest`. These seven tools are thin adapters
-over existing public deterministic
-services. Strict JSON decoding preserves canonical domain types and all core
-Python strictness. Strategy validation retains its digest/issue contract; new
-queries return unchanged domain results in a success/value/issues envelope.
-Quality errors and risk REJECT remain authoritative results, not adapter failures.
-Features use only the trusted default registry. Analytics accepts an existing
-BacktestResult without executing runs or changing fills/accounting.
+**COMPLETE (implementation and external runtime verification passed).** The final
+local stdio MCP 2.x surface has eighteen explicitly registered tools. The original
+seven retain their behavior; seven additional Phase 10/12 adapters reuse public
+chronological validation and causal deterministic ML services. Four operation
+adapters supply process-local lifecycle, status, cancellation, idempotency and
+immutable audit/provenance. The trusted application handoff connects retained
+Phase 16 acceptance to a separately approved exact-version specification and a
+fixed backtest -> performance sequence, without exposing human review as a tool.
 
-Checkpoint 3 adds synchronous stateless backtest execution using the existing
-approved `StrategySpecification`, canonical bars/features, instrument and required
-`BacktestConfig`. The canonical approval record must bind the exact strategy ID,
-version and content digest; existing Python contracts enforce approval and replay
-compatibility. MCP cannot approve strategies, inject registries/evaluators/engines,
-fabricate fills/P&L or mutate account/portfolio state. The deterministic service
-owns timing, costs, risk gating and accounting. No run IDs, jobs or persistence
-are introduced. `success=True` means replay completed, not profitability.
+The exact allowlist is:
 
-Structured failures are sanitized and deterministic. The builder remains fresh
-and import-safe; offline tests cover registration, reusable schemas, in-process
-SDK calls without network, JSON strictness, service reuse, input immutability,
-and approval isolation. No quantitative algorithms, human-review resume, approval
-operation, or account mutation exists in MCP. Remaining Phase 17 work includes
-broader research-run adapters, ML research adapters, run lifecycle/status/
-cancellation, provenance/audit records, idempotency, and bounded Phase 16 ↔ MCP
-integration. Lifecycle/cancellation, audit/provenance infrastructure and idempotency
-remain unimplemented; Phase 16 is not connected to MCP and ML MCP adapters are
-not implemented. Phase 17 is not complete.
+1. `validate_strategy_content`
+2. `validate_market_data`
+3. `resample_market_data`
+4. `compute_features`
+5. `evaluate_entry_risk`
+6. `analyze_performance`
+7. `run_backtest`
+8. `run_holdout`
+9. `run_walk_forward`
+10. `run_parameter_robustness`
+11. `build_ml_dataset`
+12. `train_ml_model`
+13. `predict_ml_oos`
+14. `ml_predictions_to_features`
+15. `submit_research_operation`
+16. `execute_research_operation`
+17. `get_research_operation`
+18. `cancel_research_operation`
 
-Deliverables: schema-validated bounded tool operations, approval/authorization enforcement, run status/cancellation, provenance-bearing results, audit events, and idempotency. Connect agents to MCP adapters without moving calculations into tool/LLM code; reject unrestricted code/database execution.
+The four operation tools admit only backtest, holdout, walk-forward, explicit
+parameter robustness, ML dataset construction, ridge training, OOS prediction,
+prediction-feature conversion and performance analysis. Submission returns a
+queued identifier without executing work. Explicit execution transitions queued
+-> running -> completed/failed; queued -> cancelled is the only cancellation
+edge. Running synchronous services cannot be interrupted. Terminal identities,
+results and audit chains are retained and cannot reopen. No worker, job callback,
+background loop, database or distributed queue exists.
+
+Idempotency binds a caller key to the kind, canonical validated inputs and any
+trusted workflow context. Identical requests return the same current operation
+and retained terminal result; different inputs/kinds/context conflict. Canonical
+JSON uses sorted keys, expanded defaults, normalized exact Decimal spelling and
+SHA-256. Audit records include kind, request/key digests, strategy ID/version/
+content digest where relevant, legal transitions, UTC timestamps and terminal
+result digest or fixed failure class. Audit contains no raw request, key, prompt,
+image, exception text, credentials or filesystem paths. Results are immutable
+canonical JSON text containing validated adapter output.
+
+Each server owns an isolated namespace capped at 32 total admitted identities;
+terminal identities are never evicted to make room or silently reuse keys. New
+research requests have a 1 MiB serialized admission bound, at most 5,000 bars/
+dataset rows/predictions, 100,000 supplied features, 32 ML columns, 16 robustness
+candidates and 64 walk-forward folds where applicable. Decimal expansion is
+limited to 4,096 digits for bounded canonicalization/rational inputs. Retained
+operation results have a 4 MiB limit; exceeding that limit is an unexpected
+terminal failure, never partial success. These are adapter resource limits,
+not changes to mathematical contracts. Existing seven stateless tools are
+unchanged. Stateless computations do not create operation metadata; callers
+choose the tracked surface when they need lifecycle/idempotency/audit.
+
+Phase 16 remains independently bounded and keeps accepted proposals DRAFT.
+`get_workflow_snapshot` only reads validated retained state. The application-only
+`run_reviewed_backtest` requires retained ACCEPTED_FOR_APPROVAL and a separately
+Phase 5-approved specification matching thread, strategy ID, version and digest.
+It executes at most two services, stops after a failed backtest, hashes thread
+context into audit and preserves clarification/rejection/revision paths. No
+MCP transport, provider invocation, human resume or approval transition is added
+to the graph. Canonical records are contract checks, not authentication; this
+local process and its graph/checkpointer/application handles remain trusted.
+
+All wire inputs remain strict finite JSON, canonical strict JSON-mode contracts,
+with no coercion/repair or executable dependency injection. Expected service
+input errors are fixed sanitized issues; unexpected failures and invalid outputs
+propagate to the SDK's sanitized tool error. Quantitative Python still owns
+approval, leakage/cutoffs, rules, risk, costs, fills, P&L and research reports.
+No paper/account/portfolio/ledger state, arbitrary filesystem/database/network,
+code execution, ranking, live trading or autonomous agent loop is exposed.
+
+The committed baseline was externally verified with Python 3.11/MCP 2.3.0:
+390 MCP tests and 2,216 full-suite tests. Those counts are not verification of
+this final pass. Windows runtime attempts are blocked by a missing venv Python;
+stdlib AST syntax and architecture checks pass. Final expanded MCP + orchestration and full-suite runtime verification passed in WSL Python 3.11.17: 753 targeted tests and 2473 full-suite tests. Phase 18 remains planned.
+Durability, authentication, distributed recovery and HTTP deployment are deferred.
 
 ## 18. Paper-trading engine
 
