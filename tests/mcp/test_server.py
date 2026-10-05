@@ -16,7 +16,7 @@ from quantlab.mcp.tools import validate_strategy_content
 from .helpers import TOOL_NAMES, valid_strategy_content
 
 
-def test_server_registers_exact_checkpoint_two_allowlist():
+def test_server_registers_exact_checkpoint_three_allowlist():
     server = build_mcp_server()
 
     tools = asyncio.run(server.list_tools())

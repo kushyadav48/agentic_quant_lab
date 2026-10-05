@@ -9,13 +9,14 @@ from typing import Generic, Self, TypeVar
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from quantlab.analytics import AnalyticsConfig, PerformanceReport
-from quantlab.backtesting import BacktestResult
+from quantlab.backtesting import BacktestConfig, BacktestResult
 from quantlab.data import (
     DataQualityReport, Instrument, MarketBar, MarketQuote, ResampleRequest,
     ValidationOptions,
 )
 from quantlab.features import FeatureObservation, FeatureRequest
 from quantlab.risk import RiskConfig, RiskContext, RiskDecision
+from quantlab.strategies import StrategySpecification
 
 
 class MCPBoundaryModel(BaseModel):
@@ -96,6 +97,21 @@ class PerformanceAnalysisRequest(MCPBoundaryModel):
     config: AnalyticsConfig | None = None
 
 
+class BacktestExecutionRequest(MCPBoundaryModel):
+    """Canonical replay inputs; approval and compatibility belong to the service.
+
+    The supplied specification carries its existing exact-version approval.
+    Decoding it is validation, never an approval action. No executable dependency
+    or mutable engine/registry/evaluator handle is part of this contract.
+    """
+
+    strategy: StrategySpecification
+    bars: tuple[MarketBar, ...]
+    instrument: Instrument
+    config: BacktestConfig
+    features: tuple[FeatureObservation, ...] = ()
+
+
 class AdapterIssue(MCPBoundaryModel):
     """Fixed messages and schema-only locations; never exception details."""
 
@@ -108,7 +124,7 @@ ResultValue = TypeVar("ResultValue")
 
 
 class AdapterResult(MCPBoundaryModel, Generic[ResultValue]):
-    """Success means the query completed, not dataset validity or risk ALLOW."""
+    """Success means the service completed, not validity, risk ALLOW or profitability."""
 
     success: bool
     value: ResultValue | None = None
@@ -129,3 +145,4 @@ MarketDataResampleResult = AdapterResult[tuple[MarketBar, ...]]
 FeatureComputationResult = AdapterResult[tuple[FeatureObservation, ...]]
 EntryRiskResult = AdapterResult[RiskDecision]
 PerformanceAnalysisResult = AdapterResult[PerformanceReport]
+BacktestExecutionResult = AdapterResult[BacktestResult]

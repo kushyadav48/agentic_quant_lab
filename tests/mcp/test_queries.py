@@ -15,7 +15,7 @@ from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError
 from pydantic import ValidationError
 import pytest
 
-from quantlab import analytics, data, features, risk
+from quantlab import analytics, backtesting, data, features, risk
 from quantlab.backtesting import BacktestResult
 from quantlab.mcp import build_mcp_server
 from quantlab.mcp import tools
@@ -29,10 +29,14 @@ from quantlab.mcp.models import (
 from tests.analytics.helpers import four_trades
 from tests.features.helpers import INSTRUMENT, bars
 from tests.risk.test_models import context
-from .helpers import TOOL_NAMES, valid_strategy_content
+from .helpers import TOOL_NAMES, valid_backtest_request, valid_strategy_content
 
 
-QUERIES = TOOL_NAMES[1:]
+# The original five queries retain their prohibition on backtest execution.
+QUERIES = [
+    "validate_market_data", "resample_market_data", "compute_features",
+    "evaluate_entry_risk", "analyze_performance",
+]
 CONTRACTS = dict(zip(QUERIES, (
     MarketDataValidationRequest, MarketDataResampleRequest, FeatureComputationRequest,
     EntryRiskRequest, PerformanceAnalysisRequest,
@@ -47,6 +51,7 @@ SERVICES = {
     "compute_features": (features, "compute_features"),
     "evaluate_entry_risk": (risk, "evaluate_entry_risk"),
     "analyze_performance": (analytics, "analyze_performance"),
+    "run_backtest": (backtesting, "run_backtest"),
 }
 
 
@@ -69,6 +74,7 @@ def inputs():
                                 "config": {"max_position_quantity": "1"}},
         "analyze_performance": {"result": four_trades().model_dump(mode="json"),
                                 "config": {"annualization_factor": "252"}},
+        "run_backtest": valid_backtest_request(),
     }
 
 
@@ -431,7 +437,8 @@ def test_optional_configuration_uses_existing_service_defaults(name, inputs):
 
 
 def test_portable_digest_schema_keeps_strict_end_of_string(inputs):
-    tool = asyncio.run(build_mcp_server().list_tools())[-1]
+    tool = next(t for t in asyncio.run(build_mcp_server().list_tools())
+                if t.name == "analyze_performance")
     request = inputs["analyze_performance"]
     validate({"request": request}, tool.input_schema)
     output = tools.analyze_performance(request).model_dump(mode="json")
@@ -497,7 +504,7 @@ def test_nested_unknown_fields_do_not_leak(name, inputs):
 
 
 @pytest.mark.parametrize("mode", ["legacy", "auto"])
-def test_real_client_server_protocol_lists_and_calls_all_six_tools(mode, inputs, monkeypatch):
+def test_real_client_server_protocol_lists_and_calls_all_seven_tools(mode, inputs, monkeypatch):
     """Exercise SDK dispatch, not only direct MCPServer method invocation."""
     before = deepcopy(inputs)
 
@@ -565,7 +572,7 @@ def test_protocol_failures_are_sanitized_and_do_not_coerce(mode, name, inputs, m
     asyncio.run(scenario())
 
 
-def test_real_stdio_subprocess_lists_and_calls_all_six_tools(inputs):
+def test_real_stdio_subprocess_lists_and_calls_all_seven_tools(inputs):
     """Verify the guarded entry point with the SDK's actual stdio transport."""
     async def scenario():
         parameters = StdioServerParameters(

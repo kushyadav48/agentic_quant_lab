@@ -3,6 +3,7 @@
 from mcp.server.mcpserver import MCPServer
 
 from .models import (
+    BacktestExecutionRequest,
     EntryRiskRequest,
     FeatureComputationRequest,
     MarketDataResampleRequest,
@@ -15,6 +16,7 @@ from .tools import (
     compute_features,
     evaluate_entry_risk,
     resample_market_data,
+    run_backtest,
     validate_market_data,
     validate_strategy_content,
 )
@@ -25,7 +27,7 @@ SERVER_VERSION = "0.1.0"
 
 
 def build_mcp_server() -> MCPServer:
-    """Build exactly six bounded tools without starting any transport."""
+    """Build exactly seven bounded tools without starting any transport."""
     return MCPServer(
         name=SERVER_NAME,
         title="Agentic Quant Research & Trading Lab",
@@ -38,6 +40,7 @@ def build_mcp_server() -> MCPServer:
             create_tool(compute_features, request_contract=FeatureComputationRequest),
             create_tool(evaluate_entry_risk, request_contract=EntryRiskRequest),
             create_tool(analyze_performance, request_contract=PerformanceAnalysisRequest),
+            create_tool(run_backtest, request_contract=BacktestExecutionRequest),
         ],
     )
 

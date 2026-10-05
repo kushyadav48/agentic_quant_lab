@@ -31,7 +31,7 @@ def test_server_is_fresh_per_build():
     assert first is not second
 
 
-def test_server_exposes_only_the_bounded_validation_surface():
+def test_server_exposes_only_the_bounded_tool_surface():
     server = build_mcp_server()
 
     assert [tool.name for tool in asyncio.run(server.list_tools())] == TOOL_NAMES
@@ -70,14 +70,14 @@ def test_mcp_package_contains_no_eval_or_exec_calls():
 
 def test_only_permitted_public_services_and_contracts_are_imported():
     allowed = {
-        "quantlab": {"analytics", "data", "features", "risk"},
-        "quantlab.strategies": {"StrategyContent"},
+        "quantlab": {"analytics", "backtesting", "data", "features", "risk"},
+        "quantlab.strategies": {"StrategyContent", "StrategySpecification"},
         "quantlab.data": {"DataQualityReport", "Instrument", "MarketBar", "MarketQuote",
                           "ResampleRequest", "ValidationOptions"},
         "quantlab.features": {"FeatureObservation", "FeatureRequest"},
         "quantlab.risk": {"RiskConfig", "RiskContext", "RiskDecision"},
         "quantlab.analytics": {"AnalyticsConfig", "PerformanceReport"},
-        "quantlab.backtesting": {"BacktestResult"},
+        "quantlab.backtesting": {"BacktestConfig", "BacktestResult"},
     }
     for path in PACKAGE_ROOT.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -135,9 +135,13 @@ def test_no_network_filesystem_execution_approval_or_unbounded_operations():
     forbidden_imports = {"socket", "subprocess", "os", "pathlib", "sqlite3", "requests",
                          "httpx", "urllib", "http", "fastapi", "starlette", "shutil"}
     forbidden_calls = {"eval", "exec", "open", "compile", "__import__", "ApprovalRecord",
-                       "approve", "resume", "run_backtest", "RuleEvaluator", "FeatureRegistry"}
+                       "approve", "mark_validated", "revise", "resume", "RuleEvaluator",
+                       "FeatureRegistry", "StrategySpecification", "Fill", "ClosedTrade",
+                       "EquityPoint", "BacktestResult"}
+    backtest_calls = []
     for path in PACKAGE_ROOT.glob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 assert not {a.name.split('.')[0] for a in node.names} & forbidden_imports
             elif isinstance(node, ast.ImportFrom) and node.level == 0:
@@ -148,3 +152,16 @@ def test_no_network_filesystem_execution_approval_or_unbounded_operations():
                 assert name not in forbidden_calls
                 if name == "compute_features":
                     assert "registry" not in {kw.arg for kw in node.keywords}
+                if name == "run_backtest":
+                    # Permit only the one public-service call in the new adapter.
+                    assert path.name == "tools.py"
+                    assert isinstance(node.func, ast.Attribute)
+                    assert isinstance(node.func.value, ast.Name)
+                    assert node.func.value.id == "backtesting"
+                    adapter = next(n for n in tree.body
+                                   if isinstance(n, ast.FunctionDef) and n.name == "run_backtest")
+                    assert node in list(ast.walk(adapter))
+                    assert len(node.args) == 3
+                    assert {kw.arg for kw in node.keywords} == {"instrument", "config"}
+                    backtest_calls.append(node)
+    assert len(backtest_calls) == 1

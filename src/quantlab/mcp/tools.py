@@ -4,11 +4,12 @@ from typing import Annotated, Any
 
 from pydantic import Field, ValidationError
 
-from quantlab import analytics, data, features, risk
+from quantlab import analytics, backtesting, data, features, risk
 from quantlab.strategies import StrategyContent
 
 from .decoding import decode_request, encode_json_object, service_issue
 from .models import (
+    BacktestExecutionRequest, BacktestExecutionResult,
     EntryRiskRequest, EntryRiskResult,
     FeatureComputationRequest, FeatureComputationResult,
     MarketDataResampleRequest, MarketDataResampleResult,
@@ -157,3 +158,22 @@ def analyze_performance(request: dict[str, Any]) -> PerformanceAnalysisResult:
     except analytics.AnalyticsInputError:
         return PerformanceAnalysisResult(success=False, issues=service_issue())
     return PerformanceAnalysisResult(success=True, value=value)
+
+
+def run_backtest(request: dict[str, Any]) -> BacktestExecutionResult:
+    """Stateless replay of a supplied approved specification; never grant approval.
+
+    The deterministic public service owns signals, fills, costs, risk and P&L.
+    Success means replay completed, not profitability or suitability for trading.
+    """
+    decoded, issues = decode_request(request, BacktestExecutionRequest)
+    if decoded is None:
+        return BacktestExecutionResult(success=False, issues=issues)
+    try:
+        value = backtesting.run_backtest(
+            decoded.strategy, decoded.bars, decoded.features,
+            instrument=decoded.instrument, config=decoded.config,
+        )
+    except backtesting.BacktestError:
+        return BacktestExecutionResult(success=False, issues=service_issue())
+    return BacktestExecutionResult(success=True, value=value)
