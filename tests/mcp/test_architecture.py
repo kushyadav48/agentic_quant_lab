@@ -10,6 +10,7 @@ from mcp.server.mcpserver import MCPServer
 
 from quantlab.mcp import build_mcp_server
 from quantlab.mcp.server import SERVER_NAME, SERVER_VERSION
+from .helpers import TOOL_NAMES
 
 
 PACKAGE_ROOT = Path(__file__).parents[2] / "src" / "quantlab" / "mcp"
@@ -33,9 +34,7 @@ def test_server_is_fresh_per_build():
 def test_server_exposes_only_the_bounded_validation_surface():
     server = build_mcp_server()
 
-    assert [tool.name for tool in asyncio.run(server.list_tools())] == [
-        "validate_strategy_content",
-    ]
+    assert [tool.name for tool in asyncio.run(server.list_tools())] == TOOL_NAMES
 
 
 def test_mcp_package_does_not_import_orchestration():
@@ -69,9 +68,17 @@ def test_mcp_package_contains_no_eval_or_exec_calls():
                 assert node.func.attr not in {"eval", "exec"}
 
 
-def test_only_public_strategy_content_is_imported_from_quantlab():
-    # An explicit allowlist prevents new quantitative, storage, orchestration,
-    # approval, or private implementation dependencies in this first adapter.
+def test_only_permitted_public_services_and_contracts_are_imported():
+    allowed = {
+        "quantlab": {"analytics", "data", "features", "risk"},
+        "quantlab.strategies": {"StrategyContent"},
+        "quantlab.data": {"DataQualityReport", "Instrument", "MarketBar", "MarketQuote",
+                          "ResampleRequest", "ValidationOptions"},
+        "quantlab.features": {"FeatureObservation", "FeatureRequest"},
+        "quantlab.risk": {"RiskConfig", "RiskContext", "RiskDecision"},
+        "quantlab.analytics": {"AnalyticsConfig", "PerformanceReport"},
+        "quantlab.backtesting": {"BacktestResult"},
+    }
     for path in PACKAGE_ROOT.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -82,8 +89,8 @@ def test_only_public_strategy_content_is_imported_from_quantlab():
                 module = node.module or ""
                 assert not module.startswith("langgraph")
                 if module.startswith("quantlab"):
-                    assert module == "quantlab.strategies"
-                    assert [alias.name for alias in node.names] == ["StrategyContent"]
+                    assert module in allowed
+                    assert {alias.name for alias in node.names} <= allowed[module]
         classes = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
         assert not {"RuleEvaluator", "FeatureRegistry", "ResearchGraph", "ApprovalRecord"} & set(classes)
 
@@ -102,8 +109,8 @@ socket.create_connection = forbidden
 import quantlab.mcp
 assert quantlab.mcp.__all__ == ['build_mcp_server']
 for module in ('quantlab.orchestration', 'quantlab.data.storage',
-               'quantlab.features', 'quantlab.backtesting', 'quantlab.risk',
-               'quantlab.ml', 'quantlab.analytics', 'quantlab.validation'):
+               'quantlab.ml', 'quantlab.validation', 'quantlab.paper',
+               'quantlab.account', 'quantlab.portfolio'):
     assert module not in sys.modules, module
 """
     result = subprocess.run([sys.executable, "-B", "-c", code],
@@ -122,3 +129,22 @@ def test_main_starts_only_stdio(monkeypatch):
     monkeypatch.setattr(MCPServer, "run", observe)
     server.main()
     assert calls == ["stdio"]
+
+
+def test_no_network_filesystem_execution_approval_or_unbounded_operations():
+    forbidden_imports = {"socket", "subprocess", "os", "pathlib", "sqlite3", "requests",
+                         "httpx", "urllib", "http", "fastapi", "starlette", "shutil"}
+    forbidden_calls = {"eval", "exec", "open", "compile", "__import__", "ApprovalRecord",
+                       "approve", "resume", "run_backtest", "RuleEvaluator", "FeatureRegistry"}
+    for path in PACKAGE_ROOT.glob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                assert not {a.name.split('.')[0] for a in node.names} & forbidden_imports
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                assert (node.module or "").split('.')[0] not in forbidden_imports
+            elif isinstance(node, ast.Call):
+                name = (node.func.id if isinstance(node.func, ast.Name) else
+                        node.func.attr if isinstance(node.func, ast.Attribute) else "")
+                assert name not in forbidden_calls
+                if name == "compute_features":
+                    assert "registry" not in {kw.arg for kw in node.keywords}

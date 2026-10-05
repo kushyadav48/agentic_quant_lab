@@ -246,16 +246,25 @@ adapters and tool integration remain deferred. Phases 17+ remain planned.
 
 Purpose: expose existing quant application services through typed agent tools.
 
-**In progress.** The local stdio MCP 2.x foundation exposes only
-`validate_strategy_content`, a thin adapter over the existing Phase 5 contract.
-Strict JSON decoding preserves canonical domain types, semantic validation,
-and the existing content digest without weakening core Python contracts.
-Structured failures are sanitized and deterministic. The builder is fresh and
-import-safe; offline tests cover registration, schemas, in-process SDK calls,
-strictness, input immutability, and approval isolation. No quantitative logic,
-human-review resume, or approval operation is exposed. Additional bounded
-service adapters, run lifecycle, provenance/audit events, idempotency, and agent
-integration still require implementation and review; Phase 17 is not complete.
+**IN PROGRESS — checkpoint 2 implemented.** The local stdio MCP 2.x surface
+exposes exactly `validate_strategy_content`, `validate_market_data`,
+`resample_market_data`, `compute_features`, `evaluate_entry_risk`, and
+`analyze_performance`. These are thin adapters over existing public deterministic
+services. Strict JSON decoding preserves canonical domain types and all core
+Python strictness. Strategy validation retains its digest/issue contract; new
+queries return unchanged domain results in a success/value/issues envelope.
+Quality errors and risk REJECT remain authoritative results, not adapter failures.
+Features use only the trusted default registry. Analytics accepts an existing
+BacktestResult without executing runs or changing fills/accounting.
+
+Structured failures are sanitized and deterministic. The builder remains fresh
+and import-safe; offline tests cover registration, reusable schemas, in-process
+SDK calls without network, JSON strictness, service reuse, input immutability,
+and approval isolation. No quantitative algorithms, human-review resume, approval
+operation, or account mutation exists in MCP. Remaining Phase 17 work includes
+backtest/research-run adapters, ML research adapters, run lifecycle/status/
+cancellation, provenance/audit records, idempotency, and bounded Phase 16 ↔ MCP
+integration. Phase 17 is not complete.
 
 Deliverables: schema-validated bounded tool operations, approval/authorization enforcement, run status/cancellation, provenance-bearing results, audit events, and idempotency. Connect agents to MCP adapters without moving calculations into tool/LLM code; reject unrestricted code/database execution.
 

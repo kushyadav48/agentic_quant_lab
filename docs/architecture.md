@@ -395,7 +395,7 @@ flowchart TD
     Storage --> UI
 ```
 
-Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; the Phase 17 tool surface currently supports only strategy-content validation over local stdio.
+Arrows represent information/control flow, not Python import direction. Every execution entry point, including internal application services and MCP tools, must enforce the same approval and risk rules. The diagram is conceptual; the Phase 17 tool surface currently supports strategy-content validation and five stateless deterministic queries over local stdio.
 
 ## Architectural layers
 
@@ -538,9 +538,9 @@ An agent cannot grant approval, change risk policy, deploy live trading, or prom
 
 ### MCP and application tools
 
-**Phase 17 in progress:** `quantlab.mcp.build_mcp_server()` returns a fresh
+**Phase 17 IN PROGRESS (checkpoint 2):** `quantlab.mcp.build_mcp_server()` returns a fresh
 official MCP 2.x `MCPServer` without starting transport. The guarded server
-entry point runs local stdio only. The sole registered tool is
+entry point runs local stdio only. The existing tool remains
 `validate_strategy_content(content=...)`, with structured output containing
 `valid`, `content_digest`, and sanitized validation issues.
 
@@ -556,15 +556,77 @@ names are not echoed.
 
 The SDK input schema deliberately accepts a raw object with a contract
 description: invalid domain fields reach the adapter and return structured
-issues instead of failing SDK argument validation. The dedicated boundary
-request checks JSON wire types without copying the domain schema. Results are
+issues instead of failing SDK argument validation. The generic boundary
+checker validates JSON wire types without copying the domain schema. Results are
 strict, frozen, and enforce consistency between validity, digest, and issues.
-Validation never creates a StrategySpecification or approval record, repairs
-input, starts orchestration, changes account state, or executes quant engines.
+Strategy validation never creates a StrategySpecification or approval record,
+repairs input, starts orchestration, changes account state, or executes quant engines.
 Human-review resume and Phase 5 approval are not model-callable tools.
 
-The remaining Phase 17 service adapters, run lifecycle, auditing, idempotency,
-and bounded agent integration are still planned. No HTTP deployment,
+The exact six-tool allowlist is `validate_strategy_content`,
+`validate_market_data`, `resample_market_data`, `compute_features`,
+`evaluate_entry_risk`, and `analyze_performance`. Each new tool accepts one
+`request` JSON object. Its published input schema reuses existing domain
+contracts; runtime wire checking precedes strict JSON decoding into canonical
+models. SDK argument convenience parsing is bypassed so stringified objects,
+tuples, bytes, arbitrary Python objects, non-string keys, cycles, and non-finite
+numbers cannot be silently coerced. Missing/extra tool arguments and contract
+failures expose only sanitized messages. Rust strict-end regex anchors are
+translated equivalently in published schemas only; core validators are unchanged.
+
+`server.py` only composes the six adapters and selects stdio. The generic
+`decoding.encode_json_object` uses a strict Pydantic `TypeAdapter` for finite
+JSON objects, followed by each canonical contract's JSON-mode validation.
+It does not reuse a strategy request to validate unrelated requests.
+
+`registration.py` isolates the required lower-level SDK seam. In installed MCP
+2.3.0, `MCPServer.tool()` / `add_tool()` have no argument-validation customization
+option: `FuncMetadata.validate_arguments()` first parses stringified objects,
+then validates a generated Python argument model. Strict domain models require
+JSON-mode decoding instead, and SDK argument failures can echo caller data.
+The exported `Tool.from_function()` and `MCPServer(tools=...)` registration path
+therefore uses a narrow `FuncMetadata` subclass that passes raw values to the
+adapter and rejects missing/extra outer arguments using fixed error metadata.
+This metadata hook is a lower-level SDK dependency, not a guarantee of the
+high-level decorator API. No private server/manager attributes are accessed.
+Real SDK behavioral tests guard this seam across supported SDK releases.
+
+Input schemas use public Pydantic `create_model()` to wrap reused request
+contracts and manage all `$defs` / references. There is no custom Pydantic core
+schema hook. Regex translation remains necessary because the canonical digest
+uses Rust's `\z`, which JSON Schema validators do not support. SDK output model
+validation, structured serialization and unexpected-error handling are retained.
+
+The adapters call only public services: `data.validate_dataset`, `data.resample`,
+`features.compute_features`, `risk.evaluate_entry_risk`, and
+`analytics.analyze_performance`. They contain no quantitative algorithms.
+Quality validation retains observations and reports ordering/duplicates without
+repair. Resampling uses the existing `ResampleRequest` and Phase 4 semantics.
+Features always use the public service's trusted default registry; callers
+cannot inject a registry or implementations. Entry risk uses supplied canonical
+context/config and returns the decision unchanged. Analytics only validates and
+analyzes a supplied `BacktestResult`; it does not execute a backtest, recompute
+fills, or change accounting.
+
+New structured results contain `success`, `value`, and sanitized `issues`.
+Success means the query completed: a quality report can contain errors, and a
+risk decision can be REJECT with zero approved quantity. Values reuse the exact
+domain report/decision types or canonical bar/feature tuples. Expected service
+input rejections return fixed issues; unexpected internal failures propagate to
+the SDK's sanitized tool-failure path. Inputs remain unchanged. No approval,
+account, paper, or portfolio authority is exposed.
+
+Resampling and feature computation use `ValueError` for input rejections,
+so only that service call is caught. Risk and analytics catch their public
+`RiskInputError` / `AnalyticsInputError` respectively; an unrelated `ValueError`
+escaping those APIs still fails the tool. Result construction is outside every
+service-input catch, so a broken adapter result cannot become an input failure.
+Tests include direct SDK calls, public `Client` legacy/modern protocol dispatch,
+and an actual stdio subprocess, including sanitized protocol error results.
+
+Remaining Phase 17 work includes backtest/research-run adapters, ML research
+adapters, run lifecycle/status/cancellation, provenance/audit records, idempotency,
+and bounded Phase 16 ↔ MCP integration. No HTTP deployment,
 authentication, paper trading, or portfolio operation is implemented here.
 
 Expose narrow, typed operations over application services, such as loading approved specifications, starting backtests, querying run status, and retrieving computed analytics. Use validated schemas, permitted resource identifiers, explicit error responses, audit records, and idempotency for operations that create runs or simulated orders.

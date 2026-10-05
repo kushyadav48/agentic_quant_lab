@@ -13,15 +13,15 @@ from quantlab.mcp import build_mcp_server
 from quantlab.mcp.models import StrategyValidationResult
 from quantlab.mcp.tools import validate_strategy_content
 
-from .helpers import valid_strategy_content
+from .helpers import TOOL_NAMES, valid_strategy_content
 
 
-def test_server_registers_only_strategy_validation_tool():
+def test_server_registers_exact_checkpoint_two_allowlist():
     server = build_mcp_server()
 
     tools = asyncio.run(server.list_tools())
 
-    assert [tool.name for tool in tools] == ["validate_strategy_content"]
+    assert [tool.name for tool in tools] == TOOL_NAMES
 
 
 def test_strategy_validation_tool_has_structured_output_schema():
