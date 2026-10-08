@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18C implement the offline order kernel, deterministic prefunded research account and bounded causal strategy admission/runtime; continuous paper-session functionality is planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18D implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime and deterministic replay/feed/session management; persistent recovery and continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -810,9 +810,50 @@ quotes cannot replace that event. Existing account-owned risk, pricing, fill and
 settlement publication remain authoritative; a funding gap cancels atomically.
 
 Scope is one exclusive flat prefunded EQUITY account, one instrument, MID bars
-and one executable entry. There is no feed/session service, durable state,
-executable exit, reversal, pyramiding, multi-strategy allocation, API, dashboard,
-MCP trading tool, network path or LLM execution authority. Phase 18D must supply
-genuine causal feed/opening events and calendar/session integration.
+and one executable entry. Phase 18C itself has no feed/session owner; Phase 18D
+adds the bounded recorded-delivery/session owner below. Durable state, executable
+exit, reversal, pyramiding, multi-strategy allocation, API, dashboard, MCP trading
+tool, network path and LLM execution authority remain absent. Calendar inference
+is not implemented: explicit producer opening adjacency is still required.
 See [paper-strategy-runtime.md](paper-strategy-runtime.md) for the supported policy,
 state machine, provenance limitations and integration contract.
+
+## Phase 18D: recorded market replay and paper-session ownership
+
+`quantlab.paper.sessions.PaperSession` is the exclusive serialized in-memory owner
+of a fresh Phase 18B account and Phase 18C admitted runtime/adapter. Frozen versioned
+session configuration binds the exact strategy, account, feed provenance and stale
+policy. A shared candidate publication selects lifecycle, logical clock, feed state,
+strategy, account/order/opening state and the committed audit record count together.
+All validation, canonical encoding, financial staging, record allocation and indexing
+precede the session root swap; failed operations retain the old state and permit an
+exact retry. Candidate owners remain private. Runtime journal/index changes are
+incremental and reverted on failure; financial caches remain bounded by single-entry
+execution. No per-event full-history encoding or snapshot copy is required.
+
+`ReplayEvent` preserves recorded source, dataset version, occurrence/availability/
+delivery/effective UTC timestamps, stable identity and ordering sequence. New inputs
+increase sequence and never rewind logical time or delivery chronology. Old market
+occurrences can arrive late, but cannot refresh newer observations; the existing runtime
+rejects invalid completed-bar series. Duplicate/conflicting identities use one
+session retry index. Pure clock/feed transitions derive freshness solely from these
+recorded inputs. Pause blocks strategy/orders; stop/fail coordinate existing pending
+cancellation/release without fabricating position exits. One terminal record beyond
+the ordinary retention limit is reserved so a full journal cannot strand reservations.
+
+`quantlab.replay` keeps stored-dataset adaptation outside the paper core. It rechecks
+the immutable research dataset version and models delivery at recorded availability
+without claiming missing network arrival evidence. It does not infer openings from
+ticks or OHLC. Only a declared synthetic fixture with the existing explicit adjacent
+on-time locked-opening contract can execute through the Phase 18C adapter. Admission,
+causal features, quantity restrictions, risk, Decimal pricing and settlement remain
+owned by their existing engines. Identical-input verification constructs two fresh
+financial owners and compares the deterministic audit chain/final projection.
+
+Frozen session outcomes retain actual input/provenance, decisions/features/dependencies,
+risk/order/fill/cancellation records, financial changes, resulting account/feed state
+and original typed lifecycle commands/reasons for future visual-debugger projections. No LLM, agent, MCP
+client or snapshot gains financial authority. This guarantee requires a single
+serialized caller and is not crash durable; Phase 18E persistence/reconstruction,
+18F advanced orders, portfolio allocation, feeds, brokerage, API and dashboard remain
+future work. See [the full session/replay contract](paper-market-replay.md).
