@@ -1,5 +1,5 @@
 """Frozen offline order contracts; no strategy admission or cash semantics."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
 import hashlib
@@ -36,6 +36,8 @@ def canonical_json(value) -> str:
                 return "0"
             text = format(item, "f")
             return text.rstrip("0").rstrip(".") if "." in text else text
+        if isinstance(item, timedelta):
+            return {"days": item.days, "seconds": item.seconds, "microseconds": item.microseconds}
         if isinstance(item, datetime):
             return item.isoformat()
         if isinstance(item, Enum):

@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A and 18B implement the offline order kernel and deterministic prefunded research account; remaining paper-session functionality is planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18C implement the offline order kernel, deterministic prefunded research account and bounded causal strategy admission/runtime; continuous paper-session functionality is planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -786,3 +786,33 @@ Do not implement evolution loops, self-modifying code, autonomous promotions, or
 ## Open decisions
 
 Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); future optimization of the implemented bar-by-bar engine; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
+
+## Implemented Phase 18C strategy admission and causal runtime
+
+`quantlab.paper` now connects exact Phase 5 approval and a separately recorded
+versioned eligibility decision to independently verified existing Phase 7/10
+research artifacts. It verifies dataset/request/result provenance, OOS/robustness
+associations and recorded costs/risk without rerunning research. There are no
+implicit financial thresholds and no automatic strategy approval. The provenance
+envelopes are trusted local application attestations, not authenticated signatures.
+
+`StrategyRuntime` uses explicit canonical completed-bar deliveries, existing
+RuleEvaluator tri-state semantics and single-bar raw feature computation. Immutable
+decisions retain source dependencies and exact strategy/policy/admission identity.
+It emits at most one entry intent. Late data cannot produce a retrospective signal
+or rewrite a retained decision. Batch indicators and ML delivery are rejected.
+
+`StrategyOrderAdapter` derives an attributed deterministic submission only from
+the retained intent. PaperAccount stages close-quote acceptance and reservation
+before one publication. An explicit opening event carries no complete OHLC and
+requires a real on-time locked quote at the adjacent next bar opening. Ordinary
+quotes cannot replace that event. Existing account-owned risk, pricing, fill and
+settlement publication remain authoritative; a funding gap cancels atomically.
+
+Scope is one exclusive flat prefunded EQUITY account, one instrument, MID bars
+and one executable entry. There is no feed/session service, durable state,
+executable exit, reversal, pyramiding, multi-strategy allocation, API, dashboard,
+MCP trading tool, network path or LLM execution authority. Phase 18D must supply
+genuine causal feed/opening events and calendar/session integration.
+See [paper-strategy-runtime.md](paper-strategy-runtime.md) for the supported policy,
+state machine, provenance limitations and integration contract.

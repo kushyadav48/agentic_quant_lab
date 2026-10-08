@@ -16,11 +16,24 @@ from .account_models import (
 )
 from .accounting import initialize_account, transition_account
 from .errors import PaperFundingError, PaperIdentityConflict, PaperInputError
-from .models import FillRecord, KernelConfig, OrderSide, OrderState, OrderTransition, stable_id
+from .models import (
+    FillRecord, KernelConfig, MarketDelivery, OrderSide, OrderState, OrderTransition,
+    PaperEvent, canonical_json, stable_id,
+)
 from .orders import PaperOrderKernel, _KernelState
+from .strategy_models import OpeningDelivery
 
 MAX_ACCOUNT_EVENTS = 100_000
 MAX_KERNELS = 32
+
+
+@dataclass(frozen=True)
+class _OpeningAcknowledgement:
+    """Prepared immutable provenance and exact result; never allocated after commit."""
+    wire: str
+    opening: OpeningDelivery
+    source: MarketDelivery
+    records: tuple[PaperEvent, ...]
 
 
 @dataclass(frozen=True)
@@ -28,6 +41,7 @@ class _AccountPublication:
     """All publicly visible account/order state is selected by this one pointer."""
     snapshot: AccountSnapshot
     orders: Mapping[str, _KernelState]
+    openings: Mapping[tuple[str, str], _OpeningAcknowledgement]
 
 
 @dataclass(frozen=True)
@@ -63,7 +77,8 @@ class PaperAccount:
     """
 
     def __init__(self, config: AccountConfig):
-        self._publication = _AccountPublication(initialize_account(config), MappingProxyType({}))
+        self._publication = _AccountPublication(
+            initialize_account(config), MappingProxyType({}), MappingProxyType({}))
         self._seen = {}
         self._journal = []
         self._reservation_ids = set()
@@ -141,7 +156,8 @@ class PaperAccount:
                 self._execution_ids.add(item.causation_id)
 
     def _publish(self, before: _AccountPublication, snapshot: AccountSnapshot,
-                 orders: Mapping[str, _KernelState], financial=(), adapter_entry=None) -> None:
+                 orders: Mapping[str, _KernelState], financial=(), adapter_entry=None,
+                 opening_entry=None) -> None:
         """Stage reversible caches, then publish all authoritative state once.
 
         Validation, serialization, pricing and allocation of the new root happen
@@ -151,7 +167,14 @@ class PaperAccount:
             raise PaperInputError("stale account preparation")
         if any(p.replayed or p.before is not before.snapshot for p in financial):
             raise PaperInputError("invalid financial preparation")
-        new_root = _AccountPublication(snapshot, MappingProxyType(dict(orders)))
+        openings = before.openings
+        if opening_entry is not None:
+            key, acknowledgement = opening_entry
+            if key in openings:
+                raise PaperIdentityConflict("opening acknowledgement already retained")
+            # Allocate the candidate retry/provenance index before financial staging.
+            openings = MappingProxyType({**openings, key: acknowledgement})
+        new_root = _AccountPublication(snapshot, MappingProxyType(dict(orders)), openings)
         journal_length = len(self._journal)
         try:
             self._stage_indexes(financial)
@@ -219,6 +242,64 @@ class PaperAccount:
             raise
         return kernel
 
+    def _reservation_input(self, k, strategy, event_id, sequence, timestamp):
+        """Reuse one exact reservation policy for adapters and staged strategy entry."""
+        accepted = next(e for e in k.events if isinstance(e, OrderTransition)
+            and e.state is OrderState.ACCEPTED)
+        try:
+            with localcontext(exact_context()):
+                buy = k.submission.side is OrderSide.BUY
+                reference = k.market.quote.ask if buy else k.market.quote.bid
+                price = (reference + k.config.costs.slippage if buy
+                         else reference - k.config.costs.slippage)
+                if price <= 0:
+                    raise ValueError("nonpositive reservation price")
+                amount = (price * k.submission.quantity
+                    + k.config.costs.commission_per_unit * k.submission.quantity
+                    + k.config.costs.fixed_fee_per_fill)
+        except (ValueError, DecimalException) as exc:
+            raise PaperInputError("reservation economics cannot be represented") from exc
+        reservation = FundReservation(reservation_id=self._reservation_id(k),
+            account_id=self.snapshot.config.account_id, strategy_id=strategy,
+            order_id=k.order_id, accepted_event_id=accepted.event_id, amount=amount)
+        return ReserveFunds(event_id=event_id, account_id=self.snapshot.config.account_id,
+            strategy_id=strategy, sequence=sequence, timestamp=timestamp,
+            transaction_id=k.order_id, causation_id=accepted.event_id, reservation=reservation)
+
+    @_serialized
+    def _submit_strategy_entry(self, kernel, source, command):
+        """Private Phase 18C batch: quote, entry and reservation publish together.
+
+        A standalone staging kernel reuses exact Phase 18A risk/order semantics.
+        It cannot fill, and only the account publishes authoritative owned state.
+        """
+        owned = self._owned_state(kernel)
+        before = self._publication
+        if owned.snapshot.submission is not None:
+            # Both identities must exactly match; replay never re-reserves money.
+            market_retry = kernel._prepare(source)
+            command_retry = kernel._prepare(command)
+            if not market_retry.replayed or not command_retry.replayed:
+                raise PaperInputError("strategy entry batch already consumed")
+            return command_retry.records
+        if owned.snapshot.inputs or source.timestamp < before.snapshot.timestamp:
+            raise PaperInputError("strategy entry requires a fresh causal owned kernel")
+        staged = PaperOrderKernel(owned.snapshot.config)
+        staged.process(source)
+        records = staged.process(command)
+        proposed = staged._current_state()
+        financial = ()
+        if proposed.snapshot.state is OrderState.ACCEPTED:
+            strategy = self._kernels[proposed.snapshot.config.session_id][1]
+            item = self._reservation_input(proposed.snapshot, strategy,
+                stable_id("paper-strategy-reserve-v1", command.command_id),
+                before.snapshot.last_input_sequence + 1, command.timestamp)
+            financial = (self._prepare_apply(item),)
+        snapshot = financial[0].after if financial else before.snapshot
+        self._publish(before, snapshot,
+            {**before.orders, proposed.snapshot.config.session_id: proposed}, financial)
+        return records
+
     def _reservation_id(self, state) -> str:
         return stable_id("paper-reservation-v1",
             (self.snapshot.config.account_id, state.config.session_id, state.order_id))
@@ -243,15 +324,53 @@ class PaperAccount:
             reservation_id=self._reservation_id(state), order_id=state.order_id,
             reason="cancelled" if state.state is OrderState.CANCELLED else "rejected")
 
+    def _opening_acknowledgement(self, kernel, event_id):
+        self._owned_state(kernel)
+        return self._publication.openings.get((kernel._config.session_id, event_id))
+
+    def _opening_records(self, kernel):
+        self._owned_state(kernel)
+        session = kernel._config.session_id
+        return tuple(ack.opening for (owner, _), ack in self._publication.openings.items()
+                     if owner == session)
+
+    def _prepare_opening_acknowledgement(self, opening, source, records):
+        """All acknowledgement allocation and canonical checks precede publication."""
+        wire = opening.canonical_json()
+        canonical_json((opening, source, records))
+        return _OpeningAcknowledgement(wire, opening, source, records)
+
+    @_serialized
+    def _process_strategy_open(self, kernel, opening):
+        """Private strategy path: provenance/retry state commits with owned execution."""
+        if type(opening) is not OpeningDelivery:
+            raise PaperInputError("expected a canonical opening delivery")
+        opening = OpeningDelivery.model_validate(opening)
+        wire = opening.canonical_json()
+        prior = self._opening_acknowledgement(kernel, opening.event_id)
+        if prior is not None:
+            if prior.wire != wire:
+                raise PaperIdentityConflict("opening identity reused with different content")
+            return prior.records
+        source = MarketDelivery(event_id=stable_id("paper-strategy-opening-v1", opening),
+            sequence=opening.sequence, timestamp=opening.timestamp,
+            delivered_at=opening.delivered_at, quote=opening.quote)
+        return self._process_order(kernel, source, opening=opening)
+
     @_serialized
     def process_order(self, kernel: PaperOrderKernel, item):
         """Single deterministic preparation/commit boundary for an owned kernel."""
+        return self._process_order(kernel, item)
+
+    def _process_order(self, kernel, item, *, opening=None):
         if type(kernel) is not PaperOrderKernel:
             raise PaperInputError("expected an owned kernel")
         self._owned_state(kernel)
         before = self._publication
         proposed = kernel._prepare(item)
         if proposed.replayed:
+            if opening is not None:
+                raise PaperInputError("opening execution lacks its coordinated acknowledgement")
             return proposed.records
         if proposed.after.snapshot.timestamp < before.snapshot.timestamp:
             raise PaperInputError("owned order input precedes the account clock")
@@ -278,7 +397,12 @@ class PaperAccount:
                 financial = (self._prepare_apply(self._release_input(state, terminal)),)
         snapshot = financial[0].after if financial else before.snapshot
         orders = {**before.orders, state.config.session_id: proposed.after}
-        self._publish(before, snapshot, orders, financial)
+        opening_entry = None
+        if opening is not None:
+            acknowledgement = self._prepare_opening_acknowledgement(
+                opening, item, proposed.records)
+            opening_entry = ((state.config.session_id, opening.event_id), acknowledgement)
+        self._publish(before, snapshot, orders, financial, opening_entry=opening_entry)
         return proposed.records
 
     @_serialized
@@ -311,27 +435,7 @@ class PaperAccount:
         if operation == "reserve":
             if k.state is not OrderState.ACCEPTED:
                 raise PaperInputError("reservation requires an accepted order")
-            accepted = next(e for e in k.events if isinstance(e, OrderTransition)
-                and e.state is OrderState.ACCEPTED)
-            try:
-                with localcontext(exact_context()):
-                    buy = k.submission.side is OrderSide.BUY
-                    reference = k.market.quote.ask if buy else k.market.quote.bid
-                    price = (reference + k.config.costs.slippage if buy
-                             else reference - k.config.costs.slippage)
-                    if price <= 0:
-                        raise ValueError("nonpositive reservation price")
-                    amount = (price * k.submission.quantity
-                        + k.config.costs.commission_per_unit * k.submission.quantity
-                        + k.config.costs.fixed_fee_per_fill)
-            except (ValueError, DecimalException) as exc:
-                raise PaperInputError("reservation economics cannot be represented") from exc
-            reservation = FundReservation(reservation_id=self._reservation_id(k),
-                account_id=before.snapshot.config.account_id, strategy_id=strategy,
-                order_id=k.order_id, accepted_event_id=accepted.event_id, amount=amount)
-            item = ReserveFunds(event_id=event_id, account_id=before.snapshot.config.account_id,
-                strategy_id=strategy, sequence=sequence, timestamp=timestamp,
-                transaction_id=k.order_id, causation_id=accepted.event_id, reservation=reservation)
+            item = self._reservation_input(k, strategy, event_id, sequence, timestamp)
             prepared = self._prepare_apply(item)
             self._publish(before, prepared.after, before.orders, (prepared,),
                 (event_id, wire, prepared.event))
