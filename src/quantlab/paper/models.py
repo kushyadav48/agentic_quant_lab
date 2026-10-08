@@ -163,7 +163,8 @@ class ExecutionRecord(PaperContract):
         return self
 
 
-TransitionReason = Literal["risk_rejected", "risk_error", "cancel_requested"]
+TransitionReason = Literal["risk_rejected", "risk_error", "cancel_requested",
+    "account_unfunded", "account_rejected"]
 
 
 class OrderTransition(ExecutionRecord):

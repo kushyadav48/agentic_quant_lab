@@ -89,8 +89,9 @@ stable rejection-reason behavior is preserved; prospective costs do not change
 the context. Malformed service results, changed context or service errors produce
 a sanitized risk-error outcome and deny acceptance/execution.
 
-No portfolio, cash, margin, conversion, sizing, liquidation or account update is
-inferred. Quantity increments are checked by exact integer ratios.
+Standalone kernels infer no portfolio, cash, margin, conversion, sizing,
+liquidation or account update. Account-owned kernels delegate transaction
+publication to their owner after the same risk/pricing preparation. Quantity increments are checked by exact integer ratios.
 
 ## Pricing and records
 
@@ -132,7 +133,9 @@ Compatibility suites retain Phase 7/8 timing/cost behavior, Phase 11 risk, Phase
 No dependency was added. Journal records are in-memory integrity checks, not
 authentication, persistence or a recovery implementation.
 
-Remaining Phase 18 work: account ownership/reservations, exact strategy admission
+Phase 18B now adds separate account ownership/reservations and research position accounting; see [paper-accounting.md](paper-accounting.md). Standalone kernel behavior and entry-only scope above are unchanged. Account-created kernels route through atomic account coordination; `kernel.process()` publishes a fill only with its financial application, or commits an account denial/cancellation plus reservation release. Private preparation cannot publish an owned fill separately. See the transaction boundary in [paper-accounting.md](paper-accounting.md).
+
+Remaining Phase 18 work: exact strategy admission
 and validation eligibility, strategy runtime/timing policy, feed/session
 integration, configurable latency, stale-feed behavior and durable recovery.
 

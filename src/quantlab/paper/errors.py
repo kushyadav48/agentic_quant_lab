@@ -15,3 +15,7 @@ class PaperIdentityConflict(PaperInputError):
 
 class PaperPricingError(PaperError):
     """Execution economics cannot be represented and reconciled."""
+
+
+class PaperFundingError(PaperInputError):
+    """Declared prefunded account capacity is insufficient; never a fill."""

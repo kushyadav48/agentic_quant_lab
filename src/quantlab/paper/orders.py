@@ -1,10 +1,14 @@
 """Serialized, synchronous, one-order offline kernel.
 
 SUBMITTED -> ACCEPTED -> FILLED; SUBMITTED -> REJECTED; ACCEPTED -> CANCELLED.
-Risk rejection/error before execution cancels the accepted order. No callbacks,
-wall clock, account updates, strategy interpretation, threads or transport exist.
+Risk rejection/error before execution cancels the accepted order. Standalone
+instances retain order-only Phase 18A behavior. Account-owned instances privately
+delegate publication to their deterministic account owner; no arbitrary execution
+callback, wall clock, strategy interpretation, threads or transport exist.
 Use one instance from one serialized caller; this is not a concurrent service.
 """
+from dataclasses import dataclass
+
 from pydantic import ValidationError
 
 from quantlab.risk import RiskAction, RiskContext, RiskDecision, RiskSide, evaluate_entry_risk
@@ -15,6 +19,20 @@ from .models import (
     stable_id,
 )
 from .pricing import price_quote
+
+
+@dataclass(frozen=True)
+class _KernelState:
+    snapshot: KernelSnapshot
+    seen: dict[str, tuple[str, tuple[PaperEvent, ...]]]
+
+
+@dataclass(frozen=True)
+class _KernelPreparation:
+    before: _KernelState
+    after: _KernelState
+    records: tuple[PaperEvent, ...]
+    replayed: bool = False
 
 
 class PaperOrderKernel:
@@ -28,10 +46,30 @@ class PaperOrderKernel:
             raise PaperInputError("invalid paper kernel configuration") from exc
         self._snapshot = KernelSnapshot(config=self._config)
         self._seen: dict[str, tuple[str, tuple[PaperEvent, ...]]] = {}
+        self._account_owner = None
 
     @property
     def snapshot(self) -> KernelSnapshot:
-        return self._snapshot
+        return self._current_state().snapshot
+
+    def _current_state(self) -> _KernelState:
+        if self._account_owner is not None:
+            return self._account_owner._owned_state(self)
+        return _KernelState(self._snapshot, self._seen)
+
+    def _bind_account(self, owner) -> None:
+        """Private construction boundary; owned kernels cannot publish alone."""
+        if self._account_owner is not None or self._snapshot.inputs:
+            raise PaperInputError("only a fresh kernel may bind an account")
+        self._account_owner = owner
+
+    def _publish_standalone(self, prepared: _KernelPreparation) -> None:
+        if self._account_owner is not None:
+            raise PaperInputError("account-owned kernels require coordinated publication")
+        if (self._snapshot is not prepared.before.snapshot
+                or self._seen is not prepared.before.seen):
+            raise PaperInputError("stale kernel preparation")
+        self._snapshot, self._seen = prepared.after.snapshot, prepared.after.seen
 
     def _risk(self, command, source, timestamp):
         """Build context internally and validate the service output; errors deny."""
@@ -60,6 +98,16 @@ class PaperOrderKernel:
         times with distinct identities are permitted. Earlier observed quotes
         delivered after submission are retained but cannot fill that order.
         """
+        if self._account_owner is not None:
+            return self._account_owner.process_order(self, item)
+        prepared = self._prepare(item)
+        self._publish_standalone(prepared)
+        return prepared.records
+
+    def _prepare(self, item) -> _KernelPreparation:
+        """Validate execution without publishing inputs, records or retry state."""
+        before = self._current_state()
+        seen_before = before.seen
         if type(item) not in (MarketDelivery, OrderSubmission, CancellationRequest):
             raise PaperInputError("expected a canonical paper input")
         supplied_identity = item.event_id if isinstance(item, MarketDelivery) else item.command_id
@@ -67,21 +115,21 @@ class PaperOrderKernel:
             item = type(item).model_validate(item)
             wire = item.canonical_json()
         except (ValueError, TypeError, ValidationError) as exc:
-            if type(supplied_identity) is str and supplied_identity in self._seen:
+            if type(supplied_identity) is str and supplied_identity in seen_before:
                 raise PaperIdentityConflict("retained identity reused with invalid content") from exc
             raise PaperInputError("invalid paper input contract") from exc
         identity = item.event_id if isinstance(item, MarketDelivery) else item.command_id
-        existing = self._seen.get(identity)
+        existing = seen_before.get(identity)
         if existing is not None:
             if wire != existing[0]:
                 raise PaperIdentityConflict("identity reused with different input content")
-            return existing[1]
-        old = self._snapshot
+            return _KernelPreparation(before, before, existing[1], replayed=True)
+        old = before.snapshot
         if identity in {e.event_id for e in old.events}:
             raise PaperIdentityConflict("input identity collides with an execution event")
         if item.sequence <= old.last_sequence or old.timestamp is not None and item.timestamp < old.timestamp:
             raise PaperInputError("input sequence/time must preserve logical chronology")
-        known = set(self._seen) | {e.event_id for e in old.events}
+        known = set(seen_before) | {e.event_id for e in old.events}
         if not isinstance(item, MarketDelivery) and item.causation_id not in known:
             raise PaperInputError("command requires a retained causation reference")
 
@@ -158,6 +206,32 @@ class PaperOrderKernel:
         # Check bounded serialization before publishing any state or retry identity.
         updated.canonical_json()
         result = tuple(records)
-        seen = {**self._seen, identity: (wire, result)}
-        self._snapshot, self._seen = updated, seen
-        return result
+        seen = {**seen_before, identity: (wire, result)}
+        return _KernelPreparation(before, _KernelState(updated, seen), result)
+
+    def _without_fill(self, prepared: _KernelPreparation, reason: str) -> _KernelPreparation:
+        """Replace only a staged fill with an account denial; preserve risk/pricing causality."""
+        if self._account_owner is None or prepared.replayed:
+            raise PaperInputError("account denial requires a new owned preparation")
+        fills = [e for e in prepared.records if isinstance(e, FillRecord)]
+        if len(fills) != 1 or reason not in ("account_unfunded", "account_rejected"):
+            raise PaperInputError("invalid coordinated non-fill outcome")
+        fill = fills[0]
+        prefix = tuple(e for e in prepared.records if e.sequence < fill.sequence)
+        body = dict(kind="transition", session_id=fill.session_id,
+            config_digest=fill.config_digest, order_id=fill.order_id,
+            sequence=fill.sequence, input_sequence=fill.input_sequence,
+            timestamp=fill.timestamp, causation_id=fill.causation_id,
+            previous_state=OrderState.ACCEPTED, state=OrderState.CANCELLED, reason=reason)
+        denial = OrderTransition(event_id=stable_id("paper-event-v1", body), **body)
+        records = (*prefix, denial)
+        proposed = prepared.after.snapshot
+        values = proposed.model_dump(mode="python")
+        values.update(state=OrderState.CANCELLED,
+            events=(*prepared.before.snapshot.events, *records))
+        updated = KernelSnapshot(**values)
+        updated.canonical_json()
+        item = proposed.inputs[-1]
+        identity = item.event_id
+        seen = {**prepared.before.seen, identity: (item.canonical_json(), records)}
+        return _KernelPreparation(prepared.before, _KernelState(updated, seen), records)

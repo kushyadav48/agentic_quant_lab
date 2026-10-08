@@ -338,7 +338,15 @@ Purpose: simulate ongoing execution for approved, validated strategies.
 
 **Phase 18A implemented.** `quantlab.paper` is an offline, synchronous single-entry market-order kernel with strict immutable contracts, deterministic logical sequence/identities/causation, quote delivery/availability checks, acceptance and pre-fill Phase 11 risk, shared Decimal pricing, cancellation and atomic idempotency. It owns no strategy admission, account ledger, persistence, recovery or transport. Existing backtest timing and MCP/agent contracts are preserved. See [paper-order-kernel.md](paper-order-kernel.md).
 
+**Phase 18B implemented.** Separate deterministic account ownership, strict immutable financial contracts, prefunded linear EQUITY P&L/collateral semantics, aggregate fund reservations, exact Decimal settlement, long/short reductions and closures, causal bid/ask valuation, reconciled snapshots and atomic idempotency are implemented. The narrow owned-kernel adapter preserves Phase 18A entry-only matching; pure accounting exits are not executable orders. See [paper-accounting.md](paper-accounting.md).
+
 Remaining Phase 18 deliverables follow; Phase 18 as a whole is not complete.
+
+- **18C planned:** approved exact-version strategy runtime and validation eligibility, current-state risk and coordinated execution admission.
+- **18D planned:** event-driven replay and feed/clock/session integration.
+- **18E planned:** persistence, recovery and reconciliation.
+
+**Phase 18B consistency hardening implemented.** Account-owned kernels now prepare execution and accounting before one shared in-memory publication. Price gaps outside prefunded capacity cancel without committing a fill and release the hold atomically. Unexpected transaction failures leave account/order snapshots, records and indexes unchanged. Standalone Phase 18A semantics are preserved; terminal settlement/release adapters acknowledge committed financial events. Multi-position allocation, aggregate risk, FX, margin, borrowing and durable/concurrent transactions are deferred.
 
 Deliverables: declared validation/eligibility policy, feed/clock integration, mandatory risk gates, simulated execution costs, order/state persistence, replay/recovery, stale-feed behavior, and duplicate-event handling. Define account-state/risk interfaces now; the multi-strategy portfolio expands them in phase 19. No real-money broker integration.
 
