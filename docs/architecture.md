@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18D implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime and deterministic replay/feed/session management; persistent recovery and continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18E implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and opt-in durable local persistence/recovery; continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -680,7 +680,7 @@ and actual stdio. The previously committed baseline passed 390 MCP / 2,216 full
 repository tests externally under Python 3.11/MCP 2.3.0. Final-pass runtime verification passed in WSL under Python 3.11.17: 753 MCP + orchestration tests and 2473 full repository tests passed. The local Windows venv remains unsuitable for runtime verification, but this no longer blocks Phase 17 sign-off. Implementation completion is not a
 claim that the expanded runtime suites have passed.
 
-Remaining Phase 18 work is planned: strategy runtime/feed integration and recovery, portfolios, trading
+Phase 18C–18E implement bounded strategy/session integration and durable local recovery. Remaining work includes advanced matching, portfolios, trading
 journal, HTTP API/dashboard, broader E2E phase, deployment and demo polish.
 Phase 17 has no live trading, financial state mutation, arbitrary filesystem,
 network/database/shell/code tools or autonomous agent loop. Durable/authenticated
@@ -854,6 +854,38 @@ Frozen session outcomes retain actual input/provenance, decisions/features/depen
 risk/order/fill/cancellation records, financial changes, resulting account/feed state
 and original typed lifecycle commands/reasons for future visual-debugger projections. No LLM, agent, MCP
 client or snapshot gains financial authority. This guarantee requires a single
-serialized caller and is not crash durable; Phase 18E persistence/reconstruction,
+serialized caller and is not crash durable by itself; Phase 18E adds the durable wrapper described below.
 18F advanced orders, portfolio allocation, feeds, brokerage, API and dashboard remain
 future work. See [the full session/replay contract](paper-market-replay.md).
+
+
+## Phase 18E: durable local session boundary
+
+`quantlab.persistence` is an explicit I/O layer above the unchanged financial engines.
+One file, connection, session and serialized owner use SQLite DELETE rollback
+journaling, EXTRA synchronization, exclusive locking and explicit transactions.
+The internal session preparation/publication seam commits complete canonical input,
+generated output/effects and optional checkpoint records before public state changes.
+A shared transaction state is armed before COMMIT and remains unreadable through
+return/handoff until complete memory publication. Confirmed precommit rollback
+permits retry; unknown commits, interrupted rollback and publication failures
+require a newly opened store/owner to recover.
+
+Versioned manifests bind approvals, independent eligibility/evidence, policies and
+configuration. Append-only operations retain unique stable input/transaction IDs,
+logical sequence/time, causal financial outputs and chained content/output digests.
+Metadata count/head are projections; bounded checkpoint rows are accelerators.
+Checkpoint creation retains compact state and references the validated journal prefix
+for growing history and indexes. Recovery verifies every record and checkpoint,
+reevaluates prefix decisions and checks all operational/order/financial outcomes
+through the existing engines, restores indexes and compares replayed suffix outputs.
+Full journal replay is also available. Recovered ACTIVE sessions require explicit
+recorded pause/resume; historical retries never clear that gate. Stopped/paused
+states are preserved.
+
+Standalone paper engines retain no-I/O behavior. No new MCP authority, worker, service,
+financial engine, network execution or dependency is added. Local integrity hashes
+are not authentication and sync guarantees depend on filesystem/storage behavior.
+Phase 18F must preserve this complete durable preparation/publication boundary with
+explicit schema/engine compatibility. See [paper-session-persistence.md](paper-session-persistence.md)
+and [phase18e-report.md](phase18e-report.md).

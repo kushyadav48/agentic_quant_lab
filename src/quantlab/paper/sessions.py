@@ -103,6 +103,16 @@ class PaperSession:
     def _prepare_record(self, **values):
         return record(SessionRecord, **values)
 
+    def _commit_candidate(self, item, outcome, candidate):
+        """Internal durability seam: required records precede public state.
+
+        Standalone sessions retain in-memory behavior. A durable owner overrides
+        this only at the exclusive serialized session boundary.
+        """
+
+    def _publish_candidate(self, candidate):
+        self._publication = candidate
+
     def _stage_record(self, identity, wire, outcome):
         self._records.append(outcome)
         self._seen[identity] = (wire, outcome)
@@ -227,7 +237,8 @@ class PaperSession:
             candidate = replace(before, state=state, clock=clock, feed=feed, runtime=runtime,
                 account=account, adapter=adapter, count=before.count + 1, record_id=outcome.record_id)
             self._stage_record(identity, wire, outcome)
-            self._publication = candidate
+            self._commit_candidate(item, outcome, candidate)
+            self._publish_candidate(candidate)
         except BaseException:
             object.__setattr__(self, "_publication", before)
             del self._records[before.count:]
