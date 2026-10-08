@@ -14,6 +14,27 @@ def validate_execution_compatibility(price_type: PriceType, costs: ExecutionCost
         raise BacktestCompatibilityError("TRADE bars cannot support nonzero synthetic spread")
 
 
+def price_execution(reference_price: Decimal, quantity: Decimal,
+                    costs: ExecutionCostConfig, *, buy: bool,
+                    spread_adjustment: Decimal) -> tuple[Decimal, CostBreakdown]:
+    """Pure arithmetic for validated execution inputs; no timing or risk authority.
+
+    Preserve the exact reference at zero price effects, including excess precision.
+    Callers retain their own Fill validation and domain-specific error boundary.
+    """
+    with localcontext(deterministic_context()):
+        price = reference_price
+        if spread_adjustment:
+            price = price + spread_adjustment if buy else price - spread_adjustment
+        if costs.slippage:
+            price = price + costs.slippage if buy else price - costs.slippage
+        if price <= 0:
+            raise ValueError("execution costs produce a nonpositive execution price")
+        return price, CostBreakdown(spread_cost=spread_adjustment * quantity,
+            slippage_cost=costs.slippage * quantity,
+            commission=costs.commission_per_unit * quantity, fees=costs.fixed_fee_per_fill)
+
+
 def _next_open_fill(signal: Signal, bar: MarketBar, quantity: Decimal,
                     costs: ExecutionCostConfig) -> Fill:
     """Use only open/start/price basis; complete-bar publication is irrelevant."""
@@ -28,21 +49,17 @@ def _next_open_fill(signal: Signal, bar: MarketBar, quantity: Decimal,
                 spread = costs.spread
             else:
                 spread = Decimal("0")
-            # Preserve the exact Phase 7 open, including excess precision, at zero costs.
-            price = bar.open
-            if spread:
-                price = price + spread if buy else price - spread
-            if costs.slippage:
-                price = price + costs.slippage if buy else price - costs.slippage
-            if price <= 0:
-                raise BacktestInputError("execution costs produce a nonpositive execution price")
+            try:
+                price, breakdown = price_execution(bar.open, quantity, costs,
+                    buy=buy, spread_adjustment=spread)
+            except ValidationError:
+                raise
+            except ValueError as exc:
+                raise BacktestInputError(str(exc)) from exc
             return Fill(action=signal.action, signal_time=signal.signal_time,
                 execution_time=bar.start_time, reference_price=bar.open,
                 execution_price=price, quantity=quantity, spread_adjustment=spread,
                 slippage_adjustment=costs.slippage,
-                costs=CostBreakdown(spread_cost=spread * quantity,
-                    slippage_cost=costs.slippage * quantity,
-                    commission=costs.commission_per_unit * quantity,
-                    fees=costs.fixed_fee_per_fill))
+                costs=breakdown)
     except (DecimalException, ValidationError) as exc:
         raise BacktestInputError(f"execution costs cannot be represented at precision 34: {exc}") from exc
