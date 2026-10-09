@@ -17,7 +17,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F and the bounded Phase 19 portfolio foundation are implemented; broader execution and Phase 20+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; broader execution and Phase 21+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -978,3 +978,28 @@ verifies the caller-retained journal, but portfolio durability and atomic
 cross-session execution are absent. Existing SQLite paper recovery retains its
 separate operator requirements. See [portfolio-management.md](portfolio-management.md)
 and [phase19-report.md](phase19-report.md) for contracts, formulas, limits and tests.
+
+## Implemented Phase 20 journal
+
+`quantlab.journal` is a separate local SQLite artifact/history owner, consuming
+existing immutable paper session and research operation/evidence contracts. It
+retains exact approved strategy/admission provenance, financial/execution deltas,
+risk, OCO and input references. It has no mutable paper/portfolio handle and no
+execution authority. Existing engines do not import it. Trusted applications
+deliver committed artifacts explicitly; historical backfill never rewrites the
+paper store or its checkpoints.
+
+Content-addressed imports and human note revisions form an append-only log.
+Atomic SQLite transactions maintain rebuildable identity, time, strategy, order,
+research-link and annotation indexes. Ordinary writes inspect indexed current
+heads and new artifacts; reopen/explicit verification replays the complete log
+and checks every derived row/schema. Commit uncertainty requires reopening.
+There is no atomic transaction across journal, paper or research stores.
+
+Typed paged queries expose original immutable sources with exact Decimal realized
+and fee deltas. Session summaries use authoritative account heads, retaining open
+positions and separating unrealized marks from closed outcomes. Research records
+preserve original namespaces/identities, request/result digests, typed retained
+results, audit revisions and evidence references. Human annotation updates append
+immutable revisions independently of those facts. See
+[phase20-report.md](phase20-report.md) for integration, recovery and limitations.
