@@ -12,7 +12,8 @@ from .errors import PaperInputError
 from .models import stable_id
 from .strategy_models import (
     AdmissionRecord, EligibilityDecision, EligibilityPolicy, ResearchEvidence,
-    StrategySessionConfig, record,
+    StrategySessionConfig, record, validate_session_config, AdvancedStrategySessionConfig,
+    AdvancedEligibilityPolicy, AdvancedEligibilityDecision,
 )
 
 
@@ -182,7 +183,7 @@ def admit_strategy(strategy: StrategySpecification, config: StrategySessionConfi
     All other admission denials retain a stable reason bound to that request.
     """
     try:
-        config = StrategySessionConfig.model_validate(config)
+        config = validate_session_config(config)
         config_digest = stable_id("paper-strategy-config-v1", config)
     except (ValueError, TypeError) as exc:
         raise PaperInputError("invalid strategy session configuration") from exc
@@ -195,10 +196,18 @@ def admit_strategy(strategy: StrategySpecification, config: StrategySessionConfi
                  "strategy_mismatch")
         _require(strategy.approval.reviewed_at <= config.timestamp, "unapproved_strategy")
         _require(policy is not None, "missing_policy")
-        policy = EligibilityPolicy.model_validate(policy)
+        advanced = type(config) is AdvancedStrategySessionConfig
+        _require(type(policy) is (AdvancedEligibilityPolicy if advanced else EligibilityPolicy), "missing_policy")
+        policy = type(policy).model_validate(policy)
         policy_digest = policy.digest
         _require(eligibility is not None, "missing_eligibility")
-        eligibility = EligibilityDecision.model_validate(eligibility)
+        _require(type(eligibility) is (AdvancedEligibilityDecision if advanced else EligibilityDecision), "eligibility_mismatch")
+        eligibility = type(eligibility).model_validate(eligibility)
+        if advanced:
+            _require(eligibility.execution_approval_id == config.execution_approval.record_id
+                and eligibility.configuration_digest == config.authorization_digest
+                and config.execution_approval.timestamp <= eligibility.timestamp
+                and strategy.approval.reviewed_at <= config.execution_approval.timestamp, "eligibility_mismatch")
         causation, refs = eligibility.record_id, eligibility.evidence
         _require(eligibility.eligible and eligibility.policy_digest == policy_digest
             and eligibility.timestamp <= config.timestamp

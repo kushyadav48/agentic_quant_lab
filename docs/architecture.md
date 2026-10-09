@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18E implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and opt-in durable local persistence/recovery; continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
+**Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18E implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and opt-in durable local persistence/recovery; a bounded Phase 18F v2 order/exit stage is now present with retained-history copying remediated; continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
 
@@ -709,7 +709,7 @@ Hard limits apply after strategy sizing proposals. Stop controls must prevent ne
 
 **Phase 18A implemented:** `quantlab.paper` provides a strict offline one-order kernel, recorded logical ordering and causation, mandatory flat-entry risk at acceptance/execution, observed-side market fills, cancellation, idempotency and immutable in-memory audit. Shared pricing arithmetic preserves historical behavior. This is not strategy admission, cash accounting or an ongoing session; MCP and orchestration boundaries are unchanged. See [paper-order-kernel.md](paper-order-kernel.md).
 
-**Phase 18B implemented:** a separate `PaperAccount` owns strict immutable prefunded linear EQUITY research accounting in one quote denomination with multiplier 1. Pure reservation, settlement, reduction/closure and executable-side valuation transitions reconcile balance, equity, funds, collateral, gross P&L and fees under exact bounded Decimal arithmetic. Account-owned entry kernels prepare matching and accounting without publication, then expose both through one immutable in-memory publication root. Unaffordable or invalid settlement candidates cancel without a fill and release their reservation atomically; terminal adapter methods acknowledge existing accounting only. Standalone Phase 18A behavior is preserved. Accounting closes are pure trusted transitions; executable exits, margin, FX, persistence and runtime admission remain deferred. No MCP/agent authority is added. See [paper-accounting.md](paper-accounting.md).
+**Phase 18B implemented:** a separate `PaperAccount` owns strict immutable prefunded linear EQUITY research accounting in one quote denomination with multiplier 1. Pure reservation, settlement, reduction/closure and executable-side valuation transitions reconcile balance, equity, funds, collateral, gross P&L and fees under exact bounded Decimal arithmetic. Account-owned entry kernels prepare matching and accounting without publication, then expose both through one immutable in-memory publication root. Unaffordable or invalid settlement candidates cancel without a fill and release their reservation atomically; terminal adapter methods acknowledge existing accounting only. Standalone Phase 18A behavior is preserved. Phase 18B accounting closes are pure trusted transitions; the bounded Phase 18F v2 stage adds executable position-linked exits. Margin and FX remain deferred; Phases 18C and 18E provide the narrow admission and persistence boundaries below. No MCP/agent authority is added. See [paper-accounting.md](paper-accounting.md).
 
 Own simulated order lifecycle, fills, balances, positions, clock/feed integration, and event recovery. Entry requires an approved strategy version, recorded validation satisfying a declared eligibility policy, usable data, and current risk approval. Eligibility thresholds will be specified before this phase; historical validation is not a guarantee.
 
@@ -855,7 +855,7 @@ risk/order/fill/cancellation records, financial changes, resulting account/feed 
 and original typed lifecycle commands/reasons for future visual-debugger projections. No LLM, agent, MCP
 client or snapshot gains financial authority. This guarantee requires a single
 serialized caller and is not crash durable by itself; Phase 18E adds the durable wrapper described below.
-18F advanced orders, portfolio allocation, feeds, brokerage, API and dashboard remain
+Broader 18F completion, portfolio allocation, external feeds, brokerage, API and dashboard remain
 future work. See [the full session/replay contract](paper-market-replay.md).
 
 
@@ -889,3 +889,54 @@ are not authentication and sync guarantees depend on filesystem/storage behavior
 Phase 18F must preserve this complete durable preparation/publication boundary with
 explicit schema/engine compatibility. See [paper-session-persistence.md](paper-session-persistence.md)
 and [phase18e-report.md](phase18e-report.md).
+
+## Phase 18F: bounded v2 order and protective-exit stage
+
+Advanced contracts opt into v2 semantics while v1 market/GTC contracts keep their
+canonical encodings and financial results. PaperOrderKernel remains the matching
+authority; shared policy helpers cap limit slippage and verify causal trigger/fill
+linkage. PaperAccount remains the sole financial publication owner and now stages
+partial reservation consumption and shared simulated-quote liquidity with each fill.
+Continuation entries bind the original position transaction; reductions bind
+position ownership and cannot reverse. Exact Decimal accounting rejects
+unrepresentable weighted entry averages instead of rounding them.
+
+The session candidate includes the exit kernel and audit acknowledgement. Explicit
+v2 session commands permit one protective child or exit only after the existing
+approved next-open entry. Fresh recorded quotes execute it; the original strategy
+runtime timing is unchanged. Explicit v3 OCO commands create a linked STOP_MARKET
+stop-loss and LIMIT target in one account publication. Both share the live position
+quantity and quote budget; append-only sibling withdrawals follow partial fills and
+full closure cancels the sibling atomically. Overlapping groups and independent
+child amendments are rejected. Bounded OCO heads and current event deltas extend
+audit/effects/checkpoints without serializing retained order history. The SQLite
+manifest binds the v2 policy; optional advanced state preserves v1 wire compatibility.
+V2 checkpoint recovery verifies its prefix through the same complete operational
+engines, retaining commit-uncertainty and operator gates.
+
+AdvancedStrategySessionConfig schema 2 adds an immutable AdvancedEntryPolicy and a
+separate AdvancedEntryApproval binding the entire execution configuration, strategy
+ID/version/digest, account, quantity, risk and costs. AdvancedEligibilityPolicy and
+AdvancedEligibilityDecision explicitly review the added execution authority while
+retaining the original independent research checks. StrategySpecification and its
+historical content/approval digests are unchanged. AdvancedEntryReplayConfig schema
+3 and manifest paper-18f-entries-v3 select this path explicitly.
+
+StrategyRuntime emits AdvancedEntryIntent only from an admitted on-time TRUE
+bar-close decision. StrategyOrderAdapter stages the actual close quote, existing
+AdvancedOrderSubmission and reservation together. A genuine classified adjacent
+opening must commit before later fresh recorded quotes can match. The account root
+retains one opening gate per owned kernel alongside execution and acknowledgement;
+stops never fill their trigger event. Entry cancellation binds the exact intent.
+SessionRecord retains the advanced intent and bounded entry progress with financial
+and causal outcomes. Effects/checkpoints use the same progress head; recovery
+reconstructs the gate and verifies all operational prefixes through existing engines.
+No second matching/accounting engine or AI inference is introduced.
+
+The supported Phase 18F scope is implemented within documented bounds. Order processing appends
+immutable history chunks and updates fixed-depth retry/liquidity indexes. Session
+candidates share financial indexes with suffix rollback. New exit audit/effect and
+checkpoint state uses versioned KernelProgress heads; consumer snapshots retain full
+history. Recovery verifies both older snapshot records and new heads operationally.
+See [paper-advanced-orders.md](paper-advanced-orders.md) and
+[phase18f-report.md](phase18f-report.md) for semantics, tests and measured costs.

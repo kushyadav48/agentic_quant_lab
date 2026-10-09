@@ -1,7 +1,7 @@
 """Serialized account ownership with one publication point for owned execution."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import DecimalException, localcontext
+from decimal import Decimal, DecimalException, localcontext
 from functools import wraps
 from itertools import islice
 from types import MappingProxyType
@@ -12,15 +12,17 @@ from quantlab.risk import RiskConfig
 from .account_models import (
     AccountAdapterRequest, AccountCommand, AccountConfig, AccountEvent, AccountSnapshot,
     ApplyFill, FundReservation, KernelAttribution, MarkAccount, ReleaseFunds, ReserveFunds,
-    exact_context,
+    AdvancedApplyFill, OCOApplyFill, exact_context,
 )
 from .accounting import initialize_account, transition_account
 from .errors import PaperFundingError, PaperIdentityConflict, PaperInputError
 from .models import (
-    FillRecord, KernelConfig, MarketDelivery, OrderSide, OrderState, OrderTransition,
-    PaperEvent, canonical_json, stable_id,
+    FillRecord, KernelConfig, MarketDelivery, OrderSide, OrderState, OrderTransition, OrderSubmission,
+    PaperEvent, canonical_json, stable_id, AdvancedKernelConfig, AdvancedOrderSubmission, AdvancedFillRecord,
+    OCOKernelConfig, OCOFillRecord,
 )
 from .orders import PaperOrderKernel, _KernelState
+from .history import RetainedMap
 from .strategy_models import OpeningDelivery
 
 MAX_ACCOUNT_EVENTS = 100_000
@@ -42,6 +44,9 @@ class _AccountPublication:
     snapshot: AccountSnapshot
     orders: Mapping[str, _KernelState]
     openings: Mapping[tuple[str, str], _OpeningAcknowledgement]
+    liquidity: Mapping[str, tuple[Decimal, Decimal]] = field(default_factory=RetainedMap)
+    oco: object = None
+    entry_gates: Mapping[str, _OpeningAcknowledgement] = field(default_factory=lambda: MappingProxyType({}))
 
 
 @dataclass(frozen=True)
@@ -88,6 +93,7 @@ class PaperAccount:
         self._kernels = {}
         self._adapter_seen = {}
         self._busy = False
+        self._cache_undo = None
 
     @property
     def snapshot(self) -> AccountSnapshot:
@@ -112,7 +118,7 @@ class PaperAccount:
         return self._publication.orders[session]
 
     def _prepare_apply(self, item: AccountCommand) -> _AccountPreparation:
-        if type(item) not in (ReserveFunds, ReleaseFunds, ApplyFill, MarkAccount):
+        if type(item) not in (ReserveFunds, ReleaseFunds, ApplyFill, AdvancedApplyFill, OCOApplyFill, MarkAccount):
             raise PaperInputError("expected a strict trusted account input")
         identity = getattr(item, "event_id", None)
         try:
@@ -136,7 +142,7 @@ class PaperAccount:
             if (item.reservation.reservation_id in self._reservation_ids
                     or item.reservation.order_id in self._reserved_orders):
                 raise PaperIdentityConflict("reservation identity/order already admitted")
-        if isinstance(item, ApplyFill) and (item.order_id in self._settled_orders
+        if isinstance(item, ApplyFill) and ((not isinstance(item, AdvancedApplyFill) and item.order_id in self._settled_orders)
                 or item.causation_id in self._execution_ids):
             raise PaperIdentityConflict("execution transaction already settled")
         updated, event = transition_account(before, item)
@@ -146,18 +152,28 @@ class PaperAccount:
         """Private staging only; public reads still select the old publication."""
         for prepared in financial:
             item = prepared.item
+            if self._cache_undo is not None:
+                self._cache_undo.append(("_seen", item.event_id))
+                if isinstance(item, ReserveFunds):
+                    self._cache_undo.extend((("_reservation_ids", item.reservation.reservation_id),
+                                             ("_reserved_orders", item.reservation.order_id)))
+                if isinstance(item, ApplyFill):
+                    if not isinstance(item, AdvancedApplyFill):
+                        self._cache_undo.append(("_settled_orders", item.order_id))
+                    self._cache_undo.append(("_execution_ids", item.causation_id))
             self._seen[item.event_id] = (prepared.wire, prepared.event)
             self._journal.append(prepared.event)
             if isinstance(item, ReserveFunds):
                 self._reservation_ids.add(item.reservation.reservation_id)
                 self._reserved_orders.add(item.reservation.order_id)
             if isinstance(item, ApplyFill):
-                self._settled_orders.add(item.order_id)
+                if not isinstance(item, AdvancedApplyFill):
+                    self._settled_orders.add(item.order_id)
                 self._execution_ids.add(item.causation_id)
 
     def _publish(self, before: _AccountPublication, snapshot: AccountSnapshot,
                  orders: Mapping[str, _KernelState], financial=(), adapter_entry=None,
-                 opening_entry=None) -> None:
+                 opening_entry=None, liquidity_entry=None, oco=None) -> None:
         """Stage reversible caches, then publish all authoritative state once.
 
         Validation, serialization, pricing and allocation of the new root happen
@@ -174,12 +190,30 @@ class PaperAccount:
                 raise PaperIdentityConflict("opening acknowledgement already retained")
             # Allocate the candidate retry/provenance index before financial staging.
             openings = MappingProxyType({**openings, key: acknowledgement})
-        new_root = _AccountPublication(snapshot, MappingProxyType(dict(orders)), openings)
+        gates = before.entry_gates
+        if opening_entry is not None:
+            gates = MappingProxyType({**gates, key[0]: acknowledgement})
+        liquidity = before.liquidity
+        if liquidity_entry is not None:
+            key, budget, quantity = liquidity_entry
+            with localcontext(exact_context()):
+                prior = liquidity.get(key)
+                consumed = (Decimal("0") if prior is None else prior[1]) + quantity
+                if (prior is not None and prior[0] != budget) or consumed > budget:
+                    raise PaperInputError("shared observation liquidity budget conflict")
+                liquidity = liquidity.set(key, (budget, consumed))
+        group = before.oco if oco is None else oco
+        if group is not None:
+            from .oco import validate_publication
+            validate_publication(snapshot, orders, group)
+        new_root = _AccountPublication(snapshot, MappingProxyType(dict(orders)), openings, liquidity, group, gates)
         journal_length = len(self._journal)
         try:
             self._stage_indexes(financial)
             if adapter_entry is not None:
                 identity, wire, event = adapter_entry
+                if self._cache_undo is not None:
+                    self._cache_undo.append(("_adapter_seen", identity))
                 self._adapter_seen[identity] = (wire, event)
             self._publication = new_root
         except BaseException:
@@ -193,7 +227,8 @@ class PaperAccount:
                     self._reservation_ids.discard(item.reservation.reservation_id)
                     self._reserved_orders.discard(item.reservation.order_id)
                 if isinstance(item, ApplyFill):
-                    self._settled_orders.discard(item.order_id)
+                    if not isinstance(item, AdvancedApplyFill):
+                        self._settled_orders.discard(item.order_id)
                     self._execution_ids.discard(item.causation_id)
             if adapter_entry is not None:
                 self._adapter_seen.pop(adapter_entry[0], None)
@@ -206,6 +241,8 @@ class PaperAccount:
         prepared = self._prepare_apply(item)
         if prepared.replayed:
             return prepared.event
+        if before.oco is not None and before.oco.head.active and isinstance(prepared.item, ApplyFill):
+            raise PaperInputError("active OCO position requires group coordination")
         order_id = (prepared.item.reservation.order_id if isinstance(prepared.item, ReserveFunds)
                     else getattr(prepared.item, "order_id", None))
         if order_id is not None and any(
@@ -242,10 +279,44 @@ class PaperAccount:
             raise
         return kernel
 
+    @_serialized
+    def create_advanced_order_kernel(self, *, session_id, strategy_id, risk=None, costs=None,
+                                     liquidity_per_observation=None, maximum_age=None, reduce_only=False, maximum_inputs=128):
+        """Exclusive v2 order; one position/strategy, no netting, hedging or OCO."""
+        from datetime import timedelta
+        before = self._publication
+        position = before.snapshot.position
+        active = position is not None and position.quantity > 0
+        if (session_id in self._kernels or len(self._kernels) >= MAX_KERNELS or
+                any(k._view.state in (OrderState.SUBMITTED, OrderState.ACCEPTED, OrderState.PARTIALLY_FILLED)
+                    for k, _ in self._kernels.values()) or before.snapshot.reservations or
+                reduce_only != active or active and position.strategy_id != strategy_id):
+            raise PaperInputError("advanced order requires exclusive matching position ownership")
+        try:
+            attribution = KernelAttribution(session_id=session_id, strategy_id=strategy_id)
+            config = AdvancedKernelConfig(schema_version=2, session_id=session_id, instrument=before.snapshot.config.instrument,
+                flat_equity=before.snapshot.equity, running_peak_equity=before.snapshot.running_peak_equity,
+                risk=RiskConfig() if risk is None else risk,
+                costs=ExecutionCostConfig() if costs is None else costs,
+                liquidity_per_observation=liquidity_per_observation,
+                maximum_age=timedelta(seconds=60) if maximum_age is None else maximum_age,
+                position_id=position.entry_transaction_id if active else None, maximum_inputs=maximum_inputs)
+            kernel = PaperOrderKernel(config)
+        except (ValueError, TypeError) as exc:
+            raise PaperInputError("invalid advanced kernel policy") from exc
+        owned = kernel._current_state()
+        kernel._bind_account(self)
+        self._kernels[session_id] = (kernel, attribution.strategy_id)
+        try:
+            self._publish(before, before.snapshot, {**before.orders, session_id: owned})
+        except BaseException:
+            self._kernels.pop(session_id, None)
+            raise
+        return kernel
+
     def _reservation_input(self, k, strategy, event_id, sequence, timestamp):
         """Reuse one exact reservation policy for adapters and staged strategy entry."""
-        accepted = next(e for e in k.events if isinstance(e, OrderTransition)
-            and e.state is OrderState.ACCEPTED)
+        accepted = k.accepted
         try:
             with localcontext(exact_context()):
                 buy = k.submission.side is OrderSide.BUY
@@ -254,9 +325,17 @@ class PaperAccount:
                          else reference - k.config.costs.slippage)
                 if price <= 0:
                     raise ValueError("nonpositive reservation price")
+                fee_count = 1
+                if isinstance(k.submission, AdvancedOrderSubmission):
+                    if k.submission.reduce_only:
+                        raise PaperInputError("position reductions do not reserve entry collateral")
+                    if k.submission.limit_price is not None:
+                        price = k.submission.limit_price
+                    if k.config.liquidity_per_observation is not None:
+                        fee_count = k.submission.quantity / k.config.instrument.quantity_increment
                 amount = (price * k.submission.quantity
                     + k.config.costs.commission_per_unit * k.submission.quantity
-                    + k.config.costs.fixed_fee_per_fill)
+                    + k.config.costs.fixed_fee_per_fill * fee_count)
         except (ValueError, DecimalException) as exc:
             raise PaperInputError("reservation economics cannot be represented") from exc
         reservation = FundReservation(reservation_id=self._reservation_id(k),
@@ -304,15 +383,38 @@ class PaperAccount:
         return stable_id("paper-reservation-v1",
             (self.snapshot.config.account_id, state.config.session_id, state.order_id))
 
+    def _remaining_liquidity(self, source, budget):
+        key = stable_id("paper-simulated-observation-v2", source.quote)
+        prior = self._publication.liquidity.get(key)
+        with localcontext(exact_context()):
+            if prior is not None and prior[0] != budget:
+                raise PaperInputError("shared quote cannot change liquidity policy")
+            if budget is None:
+                return None
+            return budget - (Decimal("0") if prior is None else prior[1])
+
     def _execution_input(self, state, fill: FillRecord) -> ApplyFill:
-        return ApplyFill(event_id=stable_id("paper-account-settlement-v1",
+        cls = OCOApplyFill if isinstance(fill, OCOFillRecord) else AdvancedApplyFill if isinstance(fill, AdvancedFillRecord) else ApplyFill
+        extra = {} if cls is ApplyFill else dict(original_quantity=fill.submission.quantity,
+            cumulative_quantity=fill.cumulative_quantity, remaining_quantity=fill.remaining_quantity,
+            release_remaining=state.state in (OrderState.EXPIRED, OrderState.CANCELLED))
+        if isinstance(fill, OCOFillRecord):
+            with localcontext(exact_context()):
+                extra.update(group_id=fill.group_id, position_id=fill.submission.position_id, own_cumulative_quantity=fill.cumulative_quantity,
+                    withdrawn_quantity=fill.withdrawn_quantity,
+                    cumulative_quantity=fill.cumulative_quantity + fill.withdrawn_quantity)
+        assumptions = fill.assumptions
+        if isinstance(fill, AdvancedFillRecord):
+            from .advanced import effective_costs
+            assumptions = effective_costs(fill.submission, fill.source, fill.assumptions)
+        return cls(event_id=stable_id("paper-account-settlement-v1",
                 (self.snapshot.config.account_id, fill.event_id)),
             account_id=self.snapshot.config.account_id,
             strategy_id=self._kernels[state.config.session_id][1],
             sequence=self.snapshot.last_input_sequence + 1, timestamp=fill.timestamp,
             transaction_id=state.order_id, causation_id=fill.event_id, order_id=state.order_id,
-            reservation_id=self._reservation_id(state), execution=fill.execution,
-            source=fill.source, assumptions=fill.assumptions)
+            reservation_id=None if isinstance(fill, AdvancedFillRecord) and fill.submission.reduce_only else self._reservation_id(state),
+            execution=fill.execution, source=fill.source, assumptions=assumptions, **extra)
 
     def _release_input(self, state, terminal) -> ReleaseFunds:
         return ReleaseFunds(event_id=stable_id("paper-account-release-v1",
@@ -322,7 +424,7 @@ class PaperAccount:
             sequence=self.snapshot.last_input_sequence + 1, timestamp=terminal.timestamp,
             transaction_id=state.order_id, causation_id=terminal.event_id,
             reservation_id=self._reservation_id(state), order_id=state.order_id,
-            reason="cancelled" if state.state is OrderState.CANCELLED else "rejected")
+            reason="cancelled" if state.state in (OrderState.CANCELLED, OrderState.EXPIRED) else "rejected")
 
     def _opening_acknowledgement(self, kernel, event_id):
         self._owned_state(kernel)
@@ -366,12 +468,26 @@ class PaperAccount:
         if type(kernel) is not PaperOrderKernel:
             raise PaperInputError("expected an owned kernel")
         self._owned_state(kernel)
+        if isinstance(kernel._config, OCOKernelConfig):
+            raise PaperInputError("linked children require OCO coordination")
         before = self._publication
         proposed = kernel._prepare(item)
         if proposed.replayed:
             if opening is not None:
                 raise PaperInputError("opening execution lacks its coordinated acknowledgement")
             return proposed.records
+        if isinstance(item, OrderSubmission):
+            for session, (other, _) in self._kernels.items():
+                if other is not kernel and other._view.state in (OrderState.ACCEPTED, OrderState.PARTIALLY_FILLED):
+                    if isinstance(item, AdvancedOrderSubmission) or isinstance(other._config, AdvancedKernelConfig):
+                        raise PaperInputError("advanced execution requires one active account-owned order")
+        if isinstance(item, AdvancedOrderSubmission) and item.reduce_only:
+            position = before.snapshot.position
+            if (position is None or position.quantity == 0 or item.position_id != position.entry_transaction_id or
+                    self._kernels[kernel._config.session_id][1] != position.strategy_id or
+                    item.quantity > position.quantity or item.timestamp < position.entry_time or
+                    item.side is not (OrderSide.SELL if position.direction.value == "long" else OrderSide.BUY)):
+                raise PaperInputError("invalid reduce-only quantity, direction or position ownership")
         if proposed.after.snapshot.timestamp < before.snapshot.timestamp:
             raise PaperInputError("owned order input precedes the account clock")
         financial = ()
@@ -389,11 +505,11 @@ class PaperAccount:
                     raise PaperIdentityConflict("proposed execution was already accounted")
                 financial = (prepared,)
         state = proposed.after.snapshot
-        if state.state in (OrderState.CANCELLED, OrderState.REJECTED):
+        if state.state in (OrderState.CANCELLED, OrderState.REJECTED, OrderState.EXPIRED) and not financial:
             reservation = next((r for r in before.snapshot.reservations
                 if r.order_id == state.order_id), None)
             if reservation is not None:
-                terminal = next(e for e in reversed(state.events) if isinstance(e, OrderTransition))
+                terminal = state.transition
                 financial = (self._prepare_apply(self._release_input(state, terminal)),)
         snapshot = financial[0].after if financial else before.snapshot
         orders = {**before.orders, state.config.session_id: proposed.after}
@@ -402,7 +518,13 @@ class PaperAccount:
             acknowledgement = self._prepare_opening_acknowledgement(
                 opening, item, proposed.records)
             opening_entry = ((state.config.session_id, opening.event_id), acknowledgement)
-        self._publish(before, snapshot, orders, financial, opening_entry=opening_entry)
+        liquidity_entry = None
+        committed_fill = next((e for e in proposed.records if isinstance(e, AdvancedFillRecord)), None)
+        if committed_fill is not None and state.config.liquidity_per_observation is not None:
+            liquidity_entry = (stable_id("paper-simulated-observation-v2", committed_fill.source.quote),
+                state.config.liquidity_per_observation, committed_fill.execution.quantity)
+        self._publish(before, snapshot, orders, financial, opening_entry=opening_entry,
+            liquidity_entry=liquidity_entry)
         return proposed.records
 
     @_serialized
@@ -411,6 +533,8 @@ class PaperAccount:
         if type(kernel) is not PaperOrderKernel:
             raise PaperInputError("expected an owned kernel")
         k = self._owned_state(kernel).snapshot
+        if isinstance(k.config, OCOKernelConfig):
+            raise PaperInputError("linked children do not support independent adapters")
         session = k.config.session_id
         strategy = self._kernels[session][1]
         try:
@@ -446,12 +570,12 @@ class PaperAccount:
         if operation == "release":
             if k.state not in (OrderState.CANCELLED, OrderState.REJECTED):
                 raise PaperInputError("release requires cancellation/rejection")
-            terminal = next(e for e in reversed(k.events) if isinstance(e, OrderTransition))
+            terminal = k.transition
             identity = self._release_input(k, terminal).event_id
         else:
             if k.state is not OrderState.FILLED:
                 raise PaperInputError("settlement requires a retained filled order")
-            fill = next(e for e in k.events if isinstance(e, FillRecord))
+            fill = k.first_fill
             if timestamp != fill.timestamp:
                 raise PaperInputError("settlement uses the execution's logical time")
             identity = self._execution_input(k, fill).event_id
@@ -470,6 +594,32 @@ class PaperAccount:
 
     def settle_order(self, kernel, *, event_id, sequence, timestamp):
         return self._adapt("settle", kernel, event_id=event_id, sequence=sequence, timestamp=timestamp)
+
+    @property
+    def oco_progress(self):
+        return None if self._publication.oco is None else self._publication.oco.head
+
+    @property
+    def oco_snapshot(self):
+        if self._publication.oco is None:
+            return None
+        from .oco_models import OCOSnapshot
+        h = self._publication.oco.head
+        return OCOSnapshot(group=h, stop=self._kernels[h.stop.config.session_id][0].snapshot,
+            target=self._kernels[h.target.config.session_id][0].snapshot)
+
+    @_serialized
+    def create_protective_oco(self, command, *, risk=None, costs=None,
+                              liquidity_per_observation=None, maximum_age=None, maximum_inputs=128):
+        from .oco import create_group
+        return create_group(self, command, risk=risk, costs=costs,
+            liquidity_per_observation=liquidity_per_observation,
+            maximum_age=maximum_age, maximum_inputs=maximum_inputs)
+
+    @_serialized
+    def process_oco(self, group_id, item):
+        from .oco import process_group
+        return process_group(self, group_id, item)
 
     def mark(self, item: MarkAccount) -> AccountEvent:
         if type(item) is not MarkAccount:

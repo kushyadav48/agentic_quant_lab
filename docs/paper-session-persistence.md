@@ -222,9 +222,11 @@ journal and its financial effect appears once in each reconstructed owner. Recov
 computes in a fresh owner; it does not reapply fills to an already settled account.
 This says nothing about broker side effects or distributed processing.
 
-Phase 18F must preserve candidate preparation and persist complete new outcomes in
-the same boundary. Broader state requires compatible engine/schema migration and a
-bounded checkpoint strategy. Limit/stop/partial fills, executable exits, allocation,
+Phase 18F preserves candidate preparation and persists complete advanced outcomes
+in the same boundary through explicit versioned contracts. Limit/stop/partial fills
+and executable position-linked exits/OCO are supported within the bounds in
+[paper-advanced-orders.md](paper-advanced-orders.md). Broader state still requires
+compatible engine/schema migration and a bounded checkpoint strategy. Allocation,
 portfolios, brokerage, cloud persistence, concurrent writers, new MCP execution tools,
 dashboards and runtime LLM calls remain unsupported.
 
@@ -232,7 +234,23 @@ The corrected 5,000-event repeated recovery medians are 23.02/14.40 seconds for
 quotes and 55.86/46.34 seconds for entry/bars (full/checkpoint). Checkpoints now
 verify prefix engine semantics, so they do not skip strategy evaluation. Integrity
 verification remains the largest recovery phase. These shared-host measurements are
-observations, not latency guarantees. The final suite passes 3,240 tests without
-skips or xfails. See [the Phase 18E verification report](phase18e-report.md) for
+observations, not latency guarantees. The Phase 18E final suite passed 3,240 tests
+without skips or xfails. Current Phase 18F/audit evidence is recorded in
+[phase18f-report.md](phase18f-report.md). See [the Phase 18E verification report](phase18e-report.md) for
 exact regression counts, failure-injection evidence, raw measurements, before/after
 comparisons and the explicit performance follow-up.
+
+## Phase 18F advanced strategy-entry journal extension
+
+AdvancedEntryReplayConfig schema 3 uses manifest engine paper-18f-entries-v3.
+Physical SQLite and outer journal/checkpoint versions stay v1; old payloads retain
+their canonical identities and exact operational behavior. SessionRecord adds
+optional advanced intent and entry progress, omitted for legacy sessions. Advanced
+Effects/checkpoints retain a bounded KernelProgress entry head instead of copying
+its growing history. The recorded opening and later observations regenerate the
+account-owned gate, triggers, fills, cancellations, fees and residual reservation.
+Both recovery modes verify complete operational prefixes, including decisions;
+no AI inference or snapshot-only financial authority is accepted. Commit uncertainty
+and recovered-ACTIVE pause/resume gates are unchanged. See
+[paper-advanced-orders.md](paper-advanced-orders.md) and section P of
+[phase18f-report.md](phase18f-report.md) for contracts and verification.

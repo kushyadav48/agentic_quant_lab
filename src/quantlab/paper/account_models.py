@@ -176,6 +176,45 @@ class ApplyFill(AccountInput):
     assumptions: ExecutionCostConfig
 
 
+class AdvancedApplyFill(ApplyFill):
+    """V2 continuation settlement bound to the original admitted quantity."""
+    kind: Literal["settle_advanced"] = "settle_advanced"
+    schema_version: Literal[2] = 2
+    release_remaining: bool = False
+    original_quantity: PositiveDecimal
+    cumulative_quantity: PositiveDecimal
+    remaining_quantity: NonNegativeDecimal
+
+    @model_validator(mode="after")
+    def quantities(self) -> Self:
+        with localcontext(exact_context()):
+            if (self.cumulative_quantity > self.original_quantity or
+                    self.remaining_quantity != self.original_quantity - self.cumulative_quantity or
+                    self.execution.quantity > self.cumulative_quantity):
+                raise ValueError("partial settlement quantity mismatch")
+        return self
+
+
+class OCOApplyFill(AdvancedApplyFill):
+    """V3 cumulative reduction includes this child's fills and sibling withdrawals."""
+    kind: Literal["settle_oco"] = "settle_oco"
+    schema_version: Literal[3] = 3
+    group_id: Digest
+    position_id: Identity
+    own_cumulative_quantity: PositiveDecimal
+    withdrawn_quantity: NonNegativeDecimal
+
+    @model_validator(mode="after")
+    def group_quantity(self) -> Self:
+        with localcontext(exact_context()):
+            from quantlab.backtesting import SignalAction
+            if (self.execution.action not in (SignalAction.EXIT_LONG, SignalAction.EXIT_SHORT)
+                    or self.execution.quantity > self.own_cumulative_quantity
+                    or self.cumulative_quantity != self.own_cumulative_quantity + self.withdrawn_quantity):
+                raise ValueError("OCO settlement quantity mismatch")
+        return self
+
+
 class MarkAccount(AccountInput):
     kind: Literal["mark"] = "mark"
     source: MarketDelivery
@@ -190,7 +229,7 @@ class AccountEvent(PaperContract):
     input_id: Identity
     input_digest: Digest
     policy: Literal["prefunded-linear-equity-pnl-v1"]
-    kind: Literal["reserve", "release", "settle", "mark"]
+    kind: Literal["reserve", "release", "settle", "settle_advanced", "settle_oco", "mark"]
     sequence: Annotated[int, Field(gt=0)]
     input_sequence: Annotated[int, Field(gt=0)]
     timestamp: UtcTimestamp
@@ -227,4 +266,4 @@ class AccountAdapterRequest(LogicalInput):
     session_id: Identity
 
 
-AccountCommand = ReserveFunds | ReleaseFunds | ApplyFill | MarkAccount
+AccountCommand = ReserveFunds | ReleaseFunds | OCOApplyFill | AdvancedApplyFill | ApplyFill | MarkAccount

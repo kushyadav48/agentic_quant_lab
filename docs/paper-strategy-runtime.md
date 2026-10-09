@@ -4,7 +4,9 @@ Phase 18C connects one formally approved exact strategy to independently verifie
 previously produced research evidence and the existing single-entry PaperAccount
 execution owner. It is a bounded synchronous offline Python boundary. It adds no
 feed service, transport, persistence, MCP trading tools, broker integration or LLM
-execution calls. Phase 18 as a whole remains incomplete.
+execution calls. This describes the legacy Phase 18C owner; Phases 18D/18E and the
+explicit Phase 18F extension add recorded sessions, local durability and advanced
+execution within their documented bounds.
 
 ## Admission and distinct authorities
 
@@ -210,12 +212,25 @@ remain separate prerequisites. No new dependency is required.
 ## Phase 18D integration boundary
 
 An offline trusted caller can deliver all observations explicitly and complete one
-causal entry today. Phase 18D must supply the actual on-time completed-bar and
-opening events, real adjacency/calendar rules and session lifecycle. Phase 18C
+causal entry. Phase 18D supplies typed recorded events and session lifecycle; the
+trusted producer must supply actual on-time completed-bar and opening evidence,
+including adjacency. Phase 18C
 neither manufactures those observations nor claims that a feed is connected.
 Without a genuine qualifying opening event the entry remains unfilled; no later
 quote or retrospective OHLC is substituted. Widening support beyond locked,
 adjacent on-time openings requires an explicit causal price-source contract and
-matching tests. Phase 18E persistence/recovery and Phase 18F advanced matching,
-continuous sessions, multi-strategy allocation and executable exits remain future
-work.
+matching tests. Phase 18E provides opt-in local persistence/recovery. Phase 18F
+provides bounded advanced matching and executable position-linked exits/OCO, with
+separately approved advanced entries as described below. Continuous external feeds
+and Phase 19 multi-strategy allocation remain outside this scope.
+
+## Explicit Phase 18F advanced execution extension
+
+The v1 contracts and BAR_CLOSE -> NEXT_BAR_OPEN behavior described above remain
+unchanged. AdvancedStrategySessionConfig schema 2, AdvancedEntryApproval and
+AdvancedEligibilityDecision separately authorize a fixed advanced entry policy;
+AdvancedEntryReplayConfig schema 3 selects that execution path. The original
+strategy still needs exact content approval and independent research admission.
+Actual adjacent opening provenance gates later fresh-quote execution. Existing
+approval/eligibility records alone cannot enable resting entries. See
+[paper-advanced-orders.md](paper-advanced-orders.md) for timing, authority and limits.

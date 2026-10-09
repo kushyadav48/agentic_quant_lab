@@ -9,10 +9,10 @@ from quantlab.features import compute_features, validate_strategy_features
 from quantlab.strategies import Comparison, FeatureOperand, MarketOperand, StrategySpecification
 from .admission import AdmissionError, admit_strategy
 from .errors import PaperIdentityConflict, PaperInputError
-from .models import OrderSide
+from .models import OrderSide, stable_id
 from .strategy_models import (
     BarCloseDelivery, EntryIntent, RuntimeSnapshot, StrategyDecision,
-    StrategySessionConfig, record,
+    StrategySessionConfig, record, validate_session_config, AdvancedStrategySessionConfig, AdvancedEntryIntent,
 )
 
 
@@ -56,7 +56,7 @@ class StrategyRuntime:
         if not admission.admitted:
             raise AdmissionError(admission)
         self._strategy = StrategySpecification.model_validate(strategy)
-        self._config = StrategySessionConfig.model_validate(config)
+        self._config = validate_session_config(config)
         self._admission = admission
         self._requests = validate_strategy_features(self._strategy)
         self._groups = tuple(side.entry for side in (self._strategy.content.long,
@@ -192,7 +192,17 @@ class StrategyRuntime:
             dependencies=dependencies, features=features, reason=reason, side=side)
         intent = old.intent
         if side is not None:
-            intent = record(EntryIntent, **common, decision_id=decision.record_id,
+            extra = {}
+            intent_cls = EntryIntent
+            if type(cfg) is AdvancedStrategySessionConfig:
+                intent_cls = AdvancedEntryIntent
+                extra = dict(entry_policy=cfg.entry_policy,
+                    execution_approval_id=cfg.execution_approval.record_id,
+                    configuration_digest=cfg.authorization_digest,
+                    command_id=stable_id(
+                        "paper-strategy-submission-v2", (self.admission.record_id,
+                            decision.record_id, cfg.authorization_digest)))
+            intent = record(intent_cls, **common, **extra, decision_id=decision.record_id,
                 instrument_id=bar.instrument_id, side=side, quantity=cfg.quantity,
                 source_bar_start=bar.start_time, source_bar_end=bar.end_time)
         updated = _Publication(delivery.sequence, delivery.timestamp, old.count + 1,

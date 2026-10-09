@@ -4,12 +4,15 @@ from pathlib import Path
 import sqlite3
 
 from quantlab.paper.models import stable_id
-from quantlab.paper.session_models import ReplayConfig, ReplayEvent, SessionCommand, SessionRecord
+from quantlab.paper.oco_models import OCOCommand
+from quantlab.paper.session_models import (ReplayConfig, ReplayEvent, SessionCommand, SessionRecord,
+    AdvancedReplayConfig, AdvancedEntryReplayConfig, EntryCancellationCommand, SessionCommandCodec)
 from quantlab.strategies.schema import Digest
 from .contracts import (Checkpoint, Effects, JournalEntry, PersistenceError,
                         RecoveryRequired, StoragePolicy, decode)
 from quantlab.paper.models import PaperContract
 from typing import Literal
+from pydantic import model_validator
 
 SCHEMA_VERSION = 1
 APPLICATION_ID = 0x514C5045
@@ -17,12 +20,20 @@ APPLICATION_ID = 0x514C5045
 
 class Manifest(PaperContract):
     schema_version: Literal[1] = 1
-    engine_version: Literal["paper-18e-v1"] = "paper-18e-v1"
-    config: ReplayConfig
+    engine_version: Literal["paper-18e-v1", "paper-18f-exits-v2", "paper-18f-entries-v3"] = "paper-18e-v1"
+    config: AdvancedEntryReplayConfig | AdvancedReplayConfig | ReplayConfig
     policy: StoragePolicy
     owner_digest: Digest
     admission_digest: Digest
     binding_digest: Digest
+
+    @model_validator(mode="after")
+    def policy_version(self):
+        expected = "paper-18f-entries-v3" if type(self.config) is AdvancedEntryReplayConfig else (
+            "paper-18f-exits-v2" if type(self.config) is AdvancedReplayConfig else "paper-18e-v1")
+        if self.engine_version != expected:
+            raise ValueError("durable engine must match the explicit execution policy")
+        return self
 
 
 _SCHEMA = {
@@ -157,8 +168,8 @@ class SQLitePaperStore:
         self._check()
         self._fault("before_prepare")
         m = self.manifest
-        identity = item.command_id if type(item) is SessionCommand else item.event_id
-        kind = "command" if type(item) is SessionCommand else "event"
+        identity = item.command_id if isinstance(item, (SessionCommand, OCOCommand, EntryCancellationCommand)) else item.event_id
+        kind = "command" if isinstance(item, (SessionCommand, OCOCommand, EntryCancellationCommand)) else "event"
         prior = self.lookup(identity)
         if prior is not None:
             from quantlab.paper.errors import PaperIdentityConflict
@@ -255,9 +266,9 @@ class SQLitePaperStore:
                     raise PersistenceError("journal_digest")
                 if e.session_id != self.manifest.config.strategy.session_id or e.config_digest != self._config_digest:
                     raise PersistenceError("configuration_mismatch")
-                item = decode(SessionCommand if e.input_type == "command" else ReplayEvent, e.payload)
+                item = decode(SessionCommandCodec if e.input_type == "command" else ReplayEvent, e.payload)
                 outcome, effects = decode(SessionRecord, e.output), decode(Effects, e.effects)
-                item_id = item.command_id if type(item) is SessionCommand else item.event_id
+                item_id = item.command_id if isinstance(item, (SessionCommand, OCOCommand, EntryCancellationCommand)) else item.event_id
                 if ((e.input_id, e.logical_sequence, e.timestamp) != (item_id, item.sequence, item.timestamp)
                         or item.sequence <= sequence or item.timestamp < timestamp
                         or e.transaction_id != stable_id("paper-durable-transaction-v1", (self.manifest.binding_digest, item_id))):
@@ -266,7 +277,7 @@ class SQLitePaperStore:
                         or outcome.session_id != e.session_id or outcome.config_digest != e.config_digest
                         or outcome.input_digest != stable_id("paper-session-input-v1", item)
                         or (outcome.sequence, outcome.timestamp) != (item.sequence, item.timestamp)
-                        or outcome.command != (item if type(item) is SessionCommand else None)
+                        or outcome.command != (item if isinstance(item, (SessionCommand, OCOCommand, EntryCancellationCommand)) else None)
                         or outcome.market_event != (item if type(item) is ReplayEvent else None)):
                     raise PersistenceError("output_provenance")
                 if e.output_digest != stable_id("paper-durable-output-v1", (outcome, effects)):

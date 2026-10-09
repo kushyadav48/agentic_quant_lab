@@ -1,4 +1,5 @@
 """Strict, frozen Phase 18C records; construction grants no execution authority."""
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Annotated, ClassVar, Literal, Self
 
@@ -37,6 +38,16 @@ def record(cls, **values):
     body = {name: field.default for name, field in cls.model_fields.items()
             if not field.is_required() and name != "record_id"}
     body.update(values)
+    if "entry_intent" in body and body["entry_intent"] is None:
+        body.pop("entry_intent")
+    if "entry_order" in body and body["entry_order"] is None:
+        body.pop("entry_order")
+    if "exit_order" in body and body["exit_order"] is None:
+        body.pop("exit_order")
+    if "oco" in body and body["oco"] is None:
+        body.pop("oco")
+    if "oco_events" in body and not body["oco_events"]:
+        body.pop("oco_events")
     result = cls(record_id=stable_id(cls.namespace, body), **body)
     result.canonical_json()
     return result
@@ -129,6 +140,95 @@ class StrategySessionConfig(StrategyBinding):
     maximum_events: Annotated[int, Field(ge=1, le=10_000)] = 5000
 
 
+class AdvancedEntryPolicy(PaperContract):
+    """Reviewed v2 extension of close decisions, never an implicit v1 permission.
+
+    Submission/activation uses an actual close quote. Matching is gated by the
+    actual adjacent opening, then explicitly permits ordered fresh quote inputs.
+    Prices are fixed approved values; no caller or AI parameter substitution.
+    """
+    schema_version: Literal[2] = 2
+    policy_id: Identity
+    version: Annotated[int, Field(ge=1)]
+    activation_policy: Literal["close-submit-next-open-gate-v2"] = "close-submit-next-open-gate-v2"
+    observation_policy: Literal["opening-then-ordered-fresh-quotes-v2"] = "opening-then-ordered-fresh-quotes-v2"
+    order_type: Literal["market", "limit", "stop_market", "stop_limit"]
+    time_in_force: Literal["gtc", "ioc"] = "gtc"
+    limit_price: PositiveDecimal | None = None
+    stop_price: PositiveDecimal | None = None
+    liquidity_per_observation: PositiveDecimal | None = None
+    maximum_inputs: Annotated[int, Field(ge=3, le=256)] = 128
+    maximum_age: timedelta = timedelta(seconds=60)
+
+    @model_validator(mode="after")
+    def supported(self) -> Self:
+        if self.maximum_age < timedelta(0):
+            raise ValueError("negative entry quote age")
+        from .models import AdvancedOrderSubmission
+        AdvancedOrderSubmission(command_id="validation", causation_id="validation",
+            sequence=1, timestamp=datetime(2000, 1, 1, tzinfo=timezone.utc), instrument_id="validation",
+            side=OrderSide.BUY, quantity=Decimal("1"), order_type=self.order_type,
+            time_in_force=self.time_in_force, limit_price=self.limit_price, stop_price=self.stop_price)
+        return self
+
+    @property
+    def digest(self):
+        return stable_id("paper-advanced-entry-policy-v2", self)
+
+
+class AdvancedEntryApproval(ContentRecord, StrategyBinding):
+    """Human/application review of the exact additional execution configuration."""
+    namespace = "paper-advanced-entry-approval-v2"
+    schema_version: Literal[2] = 2
+    configuration_digest: Digest
+    reviewer: Identity
+    timestamp: UtcTimestamp
+    reason_reference: Identity
+
+
+class AdvancedEligibilityPolicy(EligibilityPolicy):
+    execution_policy: Literal["explicit-next-open-resting-v2"] = "explicit-next-open-resting-v2"
+
+
+class AdvancedEligibilityDecision(EligibilityDecision):
+    namespace = "paper-advanced-eligibility-decision-v2"
+    schema_version: Literal[2] = 2
+    execution_approval_id: Digest
+    configuration_digest: Digest
+
+
+class AdvancedStrategySessionConfig(StrategySessionConfig):
+    schema_version: Literal[2] = 2
+    entry_policy: AdvancedEntryPolicy
+    execution_approval: AdvancedEntryApproval
+
+    @property
+    def authorization_digest(self):
+        return stable_id("paper-advanced-entry-configuration-v2",
+            self.model_dump(mode="python", exclude={"execution_approval"}))
+
+    @model_validator(mode="after")
+    def approved_configuration(self) -> Self:
+        approval = self.execution_approval
+        if (approval.configuration_digest != self.authorization_digest or
+                any(getattr(approval, name) != getattr(self, name) for name in
+                    ("strategy_id", "strategy_version", "strategy_digest")) or
+                approval.timestamp > self.timestamp):
+            raise ValueError("advanced execution approval must bind the exact configuration")
+        budget = self.entry_policy.liquidity_per_observation
+        if budget is not None:
+            n, d = budget.as_integer_ratio()
+            sn, sd = self.account.instrument.quantity_increment.as_integer_ratio()
+            if (n * sd) % (d * sn):
+                raise ValueError("entry liquidity must respect instrument quantity increment")
+        return self
+
+
+def validate_session_config(config):
+    cls = AdvancedStrategySessionConfig if type(config) is AdvancedStrategySessionConfig else StrategySessionConfig
+    return cls.model_validate(config)
+
+
 AdmissionReason = Literal["admitted", "invalid_contract", "unapproved_strategy",
     "strategy_mismatch", "missing_policy", "missing_eligibility", "eligibility_mismatch",
     "evidence_missing", "evidence_unverified", "evidence_mismatch", "evidence_insufficient",
@@ -198,6 +298,23 @@ class EntryIntent(RuntimeRecord):
         return self
 
 
+class AdvancedEntryIntent(EntryIntent):
+    namespace = "paper-strategy-advanced-intent-v2"
+    schema_version: Literal[2] = 2
+    execution_policy: Literal["explicit-next-open-resting-v2"] = "explicit-next-open-resting-v2"
+    entry_policy: AdvancedEntryPolicy
+    execution_approval_id: Digest
+    configuration_digest: Digest
+    command_id: Digest
+
+    @model_validator(mode="after")
+    def command_binding(self) -> Self:
+        if self.command_id != stable_id("paper-strategy-submission-v2",
+                (self.admission_id, self.decision_id, self.configuration_digest)):
+            raise ValueError("advanced command identity must bind admission, decision and configuration")
+        return self
+
+
 class StrategyDecision(RuntimeRecord):
     namespace = "paper-strategy-decision-v1"
     source_bar_start: UtcTimestamp
@@ -224,13 +341,13 @@ class StrategyDecision(RuntimeRecord):
 
 class RuntimeSnapshot(PaperContract):
     admission: AdmissionRecord
-    config: StrategySessionConfig
+    config: AdvancedStrategySessionConfig | StrategySessionConfig
     last_sequence: Annotated[int, Field(ge=0)]
     timestamp: UtcTimestamp
     state: Literal["active", "entry_intent_emitted"]
     inputs: tuple[BarCloseDelivery, ...]
     decisions: tuple[StrategyDecision, ...]
-    intent: EntryIntent | None
+    intent: AdvancedEntryIntent | EntryIntent | None
 
 
     @model_validator(mode="after")
@@ -250,6 +367,17 @@ class RuntimeSnapshot(PaperContract):
                 raise ValueError("runtime clock must match its retained final input")
         elif self.last_sequence != 0 or self.timestamp != self.config.timestamp:
             raise ValueError("empty runtime must retain activation clock")
+        if type(self.config) is AdvancedStrategySessionConfig and self.intent is not None:
+            cfg, intent = self.config, self.intent
+            if (type(intent) is not AdvancedEntryIntent or intent.entry_policy != cfg.entry_policy
+                    or intent.configuration_digest != cfg.authorization_digest
+                    or intent.execution_approval_id != cfg.execution_approval.record_id
+                    or intent.quantity != cfg.quantity or intent.instrument_id != cfg.account.instrument.instrument_id
+                    or intent.account_id != cfg.account.account_id or intent.session_id != cfg.session_id
+                    or intent.admission_id != self.admission.record_id
+                    or any(getattr(intent, name) != getattr(cfg, name) for name in
+                        ("strategy_id", "strategy_version", "strategy_digest"))):
+                raise ValueError("advanced intent must bind its admitted reviewed configuration")
         if self.intent is not None and not any(d.record_id == self.intent.decision_id
                 and d.reason == "entry_signal" for d in self.decisions):
             raise ValueError("intent requires its retained TRUE decision")
@@ -286,6 +414,6 @@ class StrategyOrderSnapshot(PaperContract):
     """Immutable audit linkage from exact admission and decision to owned fills."""
     admission: AdmissionRecord
     decision: StrategyDecision | None
-    intent: EntryIntent | None
+    intent: AdvancedEntryIntent | EntryIntent | None
     kernel: KernelSnapshot
     openings: tuple[OpeningDelivery, ...]

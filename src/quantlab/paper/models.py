@@ -8,9 +8,9 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
-from quantlab.backtesting import ExecutionCostConfig, Fill, SignalAction
+from quantlab.backtesting import CostBreakdown, ExecutionCostConfig, Fill, SignalAction
 from quantlab.data import Instrument, MarketQuote
-from quantlab.data.models import PositiveDecimal, UtcTimestamp, _DomainModel
+from quantlab.data.models import NonNegativeDecimal, PositiveDecimal, UtcTimestamp, _DomainModel
 from quantlab.risk import RiskConfig, RiskDecision
 from quantlab.risk.models import FiniteDecimal
 from quantlab.strategies.schema import Digest
@@ -77,6 +77,8 @@ class OrderState(StrEnum):
     REJECTED = "rejected"
     CANCELLED = "cancelled"
     FILLED = "filled"
+    PARTIALLY_FILLED = "partially_filled"
+    EXPIRED = "expired"
 
 
 class KernelConfig(PaperContract):
@@ -102,6 +104,38 @@ class KernelConfig(PaperContract):
         if self.running_peak_equity < self.flat_equity:
             raise ValueError("running peak must include flat equity")
         return self
+
+
+class AdvancedKernelConfig(KernelConfig):
+    """Explicit v2 policy; legacy configuration and digests remain unchanged."""
+    schema_version: Literal[2]
+    policy: Literal["advanced-quote-v2"] = "advanced-quote-v2"
+    liquidity_per_observation: PositiveDecimal | None = None
+    maximum_age: timedelta = timedelta(seconds=60)
+    maximum_inputs: Annotated[int, Field(ge=3, le=256)] = 128
+    position_id: Identity | None = None
+
+    @model_validator(mode="after")
+    def bounded(self) -> Self:
+        if self.maximum_age < timedelta(0):
+            raise ValueError("negative data age")
+        if self.liquidity_per_observation is not None:
+            n, d = self.liquidity_per_observation.as_integer_ratio()
+            sn, sd = self.instrument.quantity_increment.as_integer_ratio()
+            if (n * sd) % (d * sn):
+                raise ValueError("liquidity budget must respect quantity increment")
+        return self
+
+
+class OCOKernelConfig(AdvancedKernelConfig):
+    """Explicit v3 linked-child policy; v2 journals retain their semantics."""
+    schema_version: Literal[3] = 3
+    policy: Literal["oco-stop-first-quote-v3"] = "oco-stop-first-quote-v3"
+    group_id: Digest
+    account_id: Identity
+    strategy_id: Identity
+    position_id: Identity
+    child_role: Literal["stop_loss", "take_profit"]
 
 
 class LogicalInput(PaperContract):
@@ -135,6 +169,44 @@ class OrderSubmission(LogicalInput):
     time_in_force: Literal["gtc"] = "gtc"
 
 
+class AdvancedOrderSubmission(OrderSubmission):
+    schema_version: Literal[2] = 2
+    kind: Literal["submit_advanced"] = "submit_advanced"
+    order_type: Literal["market", "limit", "stop_market", "stop_limit"] = "market"
+    time_in_force: Literal["gtc", "ioc"] = "gtc"
+    limit_price: PositiveDecimal | None = None
+    stop_price: PositiveDecimal | None = None
+    reduce_only: bool = False
+    position_id: Identity | None = None
+    protective_role: Literal["stop_loss", "take_profit"] | None = None
+
+    @model_validator(mode="after")
+    def parameters(self) -> Self:
+        if (self.limit_price is not None) != (self.order_type in ("limit", "stop_limit")):
+            raise ValueError("limit price required only for limit orders")
+        if (self.stop_price is not None) != (self.order_type in ("stop_market", "stop_limit")):
+            raise ValueError("stop price required only for stop orders")
+        if self.reduce_only != (self.position_id is not None):
+            raise ValueError("reduce-only requires explicit position ownership")
+        if self.protective_role is not None and (not self.reduce_only or
+                self.order_type != ("stop_market" if self.protective_role == "stop_loss" else "limit")):
+            raise ValueError("protective child requires its supported reduce-only type")
+        if self.time_in_force == "ioc" and self.stop_price is not None:
+            raise ValueError("IOC stop activation semantics are unsupported")
+        return self
+
+
+class OCOOrderSubmission(AdvancedOrderSubmission):
+    schema_version: Literal[3] = 3
+    kind: Literal["submit_oco_child"] = "submit_oco_child"
+    group_id: Digest
+    reduce_only: Literal[True] = True
+    position_id: Identity
+    protective_role: Literal["stop_loss", "take_profit"]
+    time_in_force: Literal["gtc"] = "gtc"
+    order_type: Literal["stop_market", "limit"]
+
+
 class CancellationRequest(LogicalInput):
     kind: Literal["cancel"] = "cancel"
     command_id: Identity
@@ -142,7 +214,15 @@ class CancellationRequest(LogicalInput):
     order_id: Digest
 
 
-KernelInput = Annotated[MarketDelivery | OrderSubmission | CancellationRequest,
+class CancellationAcknowledgement(LogicalInput):
+    kind: Literal["cancel_ack"] = "cancel_ack"
+    command_id: Identity
+    causation_id: Identity
+    order_id: Digest
+
+
+KernelInput = Annotated[MarketDelivery | OrderSubmission | AdvancedOrderSubmission | OCOOrderSubmission |
+    CancellationRequest | CancellationAcknowledgement,
     Field(discriminator="kind")]
 
 
@@ -166,7 +246,7 @@ class ExecutionRecord(PaperContract):
 
 
 TransitionReason = Literal["risk_rejected", "risk_error", "cancel_requested",
-    "account_unfunded", "account_rejected"]
+    "account_unfunded", "account_rejected", "ioc_remaining", "oco_closed", "oco_denied"]
 
 
 class OrderTransition(ExecutionRecord):
@@ -180,14 +260,15 @@ class OrderTransition(ExecutionRecord):
         legal = {
             None: (OrderState.SUBMITTED,),
             OrderState.SUBMITTED: (OrderState.ACCEPTED, OrderState.REJECTED),
-            OrderState.ACCEPTED: (OrderState.CANCELLED, OrderState.FILLED),
+            OrderState.ACCEPTED: (OrderState.CANCELLED, OrderState.FILLED, OrderState.PARTIALLY_FILLED, OrderState.EXPIRED),
+            OrderState.PARTIALLY_FILLED: (OrderState.CANCELLED, OrderState.FILLED, OrderState.PARTIALLY_FILLED, OrderState.EXPIRED),
         }
         if self.state not in legal.get(self.previous_state, ()):
             raise ValueError("illegal order transition")
         if self.state is OrderState.REJECTED:
             if self.reason not in ("risk_rejected", "risk_error"):
                 raise ValueError("rejection requires a risk reason")
-        elif self.state is OrderState.CANCELLED:
+        elif self.state in (OrderState.CANCELLED, OrderState.EXPIRED):
             if self.reason is None:
                 raise ValueError("cancellation requires a reason")
         elif self.reason is not None:
@@ -256,21 +337,102 @@ class CancellationOutcome(ExecutionRecord):
         if self.cancelled:
             if self.state is not OrderState.CANCELLED or self.reason != "cancelled":
                 raise ValueError("successful cancellation must close the accepted order")
-        elif self.state not in (OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED) or self.reason != "terminal_order":
+        elif self.state not in (OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED, OrderState.EXPIRED) or self.reason != "terminal_order":
             raise ValueError("denied cancellation must describe a terminal order")
         return self
 
 
-PaperEvent = Annotated[OrderTransition | RiskOutcome | FillRecord | CancellationOutcome,
+class OrderActivation(ExecutionRecord):
+    kind: Literal["activation"] = "activation"
+    submission_id: Identity
+
+
+class StopTrigger(ExecutionRecord):
+    kind: Literal["trigger"] = "trigger"
+    source: MarketDelivery
+    activation_id: Digest
+    stop_price: PositiveDecimal
+    side: OrderSide
+
+    @model_validator(mode="after")
+    def observed(self) -> Self:
+        reference = self.source.quote.ask if self.side is OrderSide.BUY else self.source.quote.bid
+        if self.input_sequence != self.source.sequence or self.timestamp != self.source.timestamp:
+            raise ValueError("trigger must bind its recorded delivery")
+        if not (reference >= self.stop_price if self.side is OrderSide.BUY else reference <= self.stop_price):
+            raise ValueError("stop was not crossed")
+        return self
+
+
+class PendingCancellation(ExecutionRecord):
+    kind: Literal["cancellation_pending"] = "cancellation_pending"
+    request_id: Identity
+
+
+class AdvancedFillRecord(FillRecord):
+    kind: Literal["advanced_fill"] = "advanced_fill"
+    submission: AdvancedOrderSubmission
+    activation_id: Digest
+    trigger_id: Digest | None = None
+    cumulative_quantity: PositiveDecimal
+    remaining_quantity: NonNegativeDecimal
+    liquidity_policy: Literal["full-fill-assumption-v1", "simulated-per-observation-v2"]
+
+    @model_validator(mode="after")
+    def causal_fill(self) -> Self:
+        from .advanced import validate_fill
+        validate_fill(self)
+        return self
+
+
+class OCOFillRecord(AdvancedFillRecord):
+    kind: Literal["oco_fill_v3"] = "oco_fill_v3"
+    submission: OCOOrderSubmission
+    group_id: Digest
+    withdrawn_quantity: NonNegativeDecimal
+
+    @model_validator(mode="after")
+    def linked(self) -> Self:
+        if self.group_id != self.submission.group_id:
+            raise ValueError("OCO fill group mismatch")
+        return self
+
+
+class OCOQuantityAdjustment(ExecutionRecord):
+    """Withdraw sibling quantity without rewriting a submission or any fill."""
+    kind: Literal["oco_quantity_v3"] = "oco_quantity_v3"
+    group_id: Digest
+    peer_fill: OCOFillRecord
+    previous_remaining: PositiveDecimal
+    remaining_quantity: NonNegativeDecimal
+    withdrawn_quantity: PositiveDecimal
+
+    @model_validator(mode="after")
+    def linked(self) -> Self:
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        f = self.peer_fill
+        with localcontext(deterministic_context(prec=4096)):
+            if (self.group_id != f.group_id or self.order_id == f.order_id
+                    or self.causation_id != f.event_id or self.input_sequence != f.input_sequence
+                    or self.timestamp != f.timestamp
+                    or self.remaining_quantity != self.previous_remaining - f.execution.quantity
+                    or self.withdrawn_quantity < f.execution.quantity):
+                raise ValueError("invalid sibling quantity withdrawal")
+        return self
+
+
+PaperEvent = Annotated[OrderTransition | RiskOutcome | FillRecord | AdvancedFillRecord |
+    OrderActivation | StopTrigger | PendingCancellation | CancellationOutcome | OCOFillRecord | OCOQuantityAdjustment,
     Field(discriminator="kind")]
 
 
 class KernelSnapshot(PaperContract):
-    config: KernelConfig
+    config: OCOKernelConfig | AdvancedKernelConfig | KernelConfig
     last_sequence: Annotated[int, Field(ge=0)] = 0
     timestamp: UtcTimestamp | None = None
     market: MarketDelivery | None = None
-    submission: OrderSubmission | None = None
+    submission: OCOOrderSubmission | AdvancedOrderSubmission | OrderSubmission | None = None
     order_id: Digest | None = None
     state: OrderState | None = None
     inputs: tuple[KernelInput, ...] = ()
@@ -278,7 +440,41 @@ class KernelSnapshot(PaperContract):
 
     @property
     def terminated(self) -> bool:
-        return self.state in (OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED)
+        return self.state in (OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED, OrderState.EXPIRED)
+
+    @property
+    def filled_quantity(self) -> Decimal:
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        with localcontext(deterministic_context(prec=4096)):
+            return sum((e.execution.quantity for e in self.events if isinstance(e, FillRecord)), Decimal("0"))
+
+    @property
+    def withdrawn_quantity(self) -> Decimal:
+        adjustments = [e for e in self.events if isinstance(e, OCOQuantityAdjustment)]
+        return adjustments[-1].withdrawn_quantity if adjustments else Decimal("0")
+
+    @property
+    def cumulative_costs(self):
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        from quantlab.backtesting import CostBreakdown
+        with localcontext(deterministic_context(prec=4096)):
+            return CostBreakdown(**{name: sum((getattr(e.execution.costs, name)
+                for e in self.events if isinstance(e, FillRecord)), Decimal("0"))
+                for name in CostBreakdown.model_fields})
+
+    @property
+    def remaining_quantity(self) -> Decimal:
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        with localcontext(deterministic_context(prec=4096)):
+            return Decimal("0") if self.submission is None else self.submission.quantity - self.filled_quantity - self.withdrawn_quantity
+
+    @property
+    def pending_cancellation(self):
+        requests = [e for e in self.events if isinstance(e, PendingCancellation)]
+        return requests[-1] if requests and not self.terminated else None
 
     @model_validator(mode="after")
     def coherent(self) -> Self:
@@ -291,9 +487,10 @@ class KernelSnapshot(PaperContract):
             raise ValueError("order identity, submission and state must agree")
         state = None
         fills = 0
+        config_digest = stable_id("paper-config-v1", self.config.model_dump(mode="python")) if self.events else None
         for index, event in enumerate(self.events, 1):
             if (event.sequence != index or event.session_id != self.config.session_id
-                    or event.config_digest != stable_id("paper-config-v1", self.config.model_dump(mode="python"))
+                    or event.config_digest != config_digest
                     or event.order_id != self.order_id or event.input_sequence > self.last_sequence):
                 raise ValueError("execution journal metadata is inconsistent")
             if isinstance(event, OrderTransition):
@@ -302,6 +499,90 @@ class KernelSnapshot(PaperContract):
                 state = event.state
             if isinstance(event, FillRecord):
                 fills += 1
+        if isinstance(self.config, AdvancedKernelConfig):
+            from .advanced import validate_snapshot
+            validate_snapshot(self, state)
+            return self
         if state is not self.state or fills != int(self.state is OrderState.FILLED):
             raise ValueError("journal must describe the final state and single fill")
         return self
+
+
+class KernelProgress(PaperContract):
+    """V2 audit head bound to an append-only input/event prefix, never authority.
+
+    Complete histories are reconstructed and checked by operational recovery;
+    consumers obtain them through KernelSnapshot. This format contains no prefix.
+    """
+    schema_version: Literal[2] = 2
+    config: AdvancedKernelConfig
+    last_sequence: Annotated[int, Field(ge=0)]
+    timestamp: UtcTimestamp | None
+    market: MarketDelivery | None
+    submission: AdvancedOrderSubmission | None
+    order_id: Digest | None
+    state: OrderState | None
+    input_count: Annotated[int, Field(ge=0, le=258)]
+    event_count: Annotated[int, Field(ge=0)]
+    history_digest: Digest
+    filled_quantity: NonNegativeDecimal
+    cumulative_costs: "CostBreakdown"
+    activation: OrderActivation | None
+    trigger: StopTrigger | None
+    pending_cancellation: PendingCancellation | None
+
+    @model_validator(mode="after")
+    def coherent(self) -> Self:
+        if bool(self.input_count) != (self.timestamp is not None):
+            raise ValueError("logical clock requires retained inputs")
+        if self.input_count > self.config.maximum_inputs + 2:
+            raise ValueError("advanced input capacity exceeded")
+        if (self.submission is None) != (self.order_id is None) or (self.order_id is None) != (self.state is None):
+            raise ValueError("order identity, submission and state must agree")
+        if self.submission is None and self.filled_quantity or self.submission is not None and self.filled_quantity > self.submission.quantity:
+            raise ValueError("invalid cumulative execution quantity")
+        if self.state is OrderState.FILLED and self.filled_quantity != self.submission.quantity:
+            raise ValueError("filled order requires complete quantity")
+        if self.terminated and self.pending_cancellation is not None:
+            raise ValueError("terminal order cannot have pending cancellation")
+        return self
+
+    @property
+    def terminated(self):
+        return self.state in (OrderState.FILLED, OrderState.REJECTED, OrderState.CANCELLED, OrderState.EXPIRED)
+
+
+class OCOKernelProgress(KernelProgress):
+    schema_version: Literal[3] = 3
+    config: OCOKernelConfig
+    submission: OCOOrderSubmission | None
+    withdrawn_quantity: NonNegativeDecimal
+
+    @model_validator(mode="after")
+    def coherent(self) -> Self:
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        if bool(self.input_count) != (self.timestamp is not None) or self.input_count > self.config.maximum_inputs + 2:
+            raise ValueError("invalid OCO clock/capacity")
+        if (self.submission is None) != (self.order_id is None) or (self.order_id is None) != (self.state is None):
+            raise ValueError("invalid OCO identity")
+        with localcontext(deterministic_context(prec=4096)):
+            total = self.filled_quantity + self.withdrawn_quantity
+            if self.submission is None and total or self.submission is not None and total > self.submission.quantity:
+                raise ValueError("OCO quantity exceeds admission")
+            if self.state is OrderState.FILLED and total != self.submission.quantity:
+                raise ValueError("OCO filled state requires zero outstanding quantity")
+        if self.terminated and self.pending_cancellation is not None:
+            raise ValueError("terminal OCO child has pending cancellation")
+        if self.submission is not None and (self.submission.group_id != self.config.group_id
+                or self.submission.position_id != self.config.position_id
+                or self.submission.protective_role != self.config.child_role):
+            raise ValueError("OCO child attribution mismatch")
+        return self
+
+    @property
+    def remaining_quantity(self):
+        from decimal import localcontext
+        from quantlab._decimal import deterministic_context
+        with localcontext(deterministic_context(prec=4096)):
+            return self.submission.quantity - self.filled_quantity - self.withdrawn_quantity

@@ -3,13 +3,16 @@ from datetime import timedelta
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_validator, model_serializer, TypeAdapter
 from quantlab.data.models import UtcTimestamp
 from quantlab.strategies.schema import Digest
 from .account_models import AccountEvent, AccountSnapshot
-from .models import Identity, LogicalInput, MarketDelivery, PaperContract, PaperEvent
+from .oco_models import OCOCommand, OCOProgress, OCOEvent, OCOSnapshot
+from .models import Identity, LogicalInput, MarketDelivery, PaperContract, PaperEvent, KernelSnapshot, KernelProgress
+from quantlab.data.models import PositiveDecimal
 from .strategy_models import (BarCloseDelivery, ContentRecord, OpeningDelivery,
-    RuntimeSnapshot, StrategyDecision, StrategyOrderSnapshot, StrategySessionConfig)
+    RuntimeSnapshot, StrategyDecision, StrategyOrderSnapshot, StrategySessionConfig, AdvancedStrategySessionConfig,
+    AdvancedEntryIntent)
 
 
 class SessionState(StrEnum):
@@ -58,6 +61,34 @@ class ReplayConfig(PaperContract):
         return self
 
 
+class AdvancedReplayConfig(ReplayConfig):
+    """V2 permits one position-linked exit at a time after the v1 approved entry."""
+    schema_version: Literal[2] = 2
+    advanced_policy: Literal["position-linked-exits-v2"] = "position-linked-exits-v2"
+    liquidity_per_observation: PositiveDecimal | None = None
+
+
+class AdvancedEntryReplayConfig(AdvancedReplayConfig):
+    """V3 selects separately reviewed v2 entries and existing protective exits/OCO."""
+    schema_version: Literal[3] = 3
+    advanced_policy: Literal["approved-advanced-entries-v3"] = "approved-advanced-entries-v3"
+    strategy: AdvancedStrategySessionConfig
+
+    @model_validator(mode="after")
+    def approved_age(self) -> Self:
+        if self.stale.maximum_age != self.strategy.entry_policy.maximum_age:
+            raise ValueError("feed age must match approved entry policy")
+        return self
+
+
+class EntryCancellationCommand(LogicalInput):
+    schema_version: Literal[3] = 3
+    command_id: Identity
+    action: Literal["request_cancel_entry", "ack_cancel_entry"]
+    intent_id: Digest
+    reason_reference: Identity
+
+
 class ReplayEvent(LogicalInput):
     schema_version: Literal[1] = 1
     event_id: Identity
@@ -101,6 +132,41 @@ class SessionCommand(LogicalInput):
     reason_reference: Identity
 
 
+class AdvancedSessionCommand(SessionCommand):
+    schema_version: Literal[2] = 2
+    action: Literal["submit_exit", "request_cancel_exit", "ack_cancel_exit"]
+    position_id: Identity
+    quantity: PositiveDecimal | None = None
+    order_type: Literal["market", "limit", "stop_market", "stop_limit"] = "market"
+    time_in_force: Literal["gtc", "ioc"] = "gtc"
+    limit_price: PositiveDecimal | None = None
+    stop_price: PositiveDecimal | None = None
+    protective_role: Literal["stop_loss", "take_profit"] | None = None
+
+    @model_validator(mode="after")
+    def parameters(self) -> Self:
+        if self.action == "submit_exit":
+            if self.quantity is None:
+                raise ValueError("exit requires quantity")
+            from .models import AdvancedOrderSubmission, OrderSide
+            AdvancedOrderSubmission(sequence=self.sequence, timestamp=self.timestamp,
+                command_id=self.command_id, causation_id=self.position_id,
+                instrument_id="validation", side=OrderSide.SELL, quantity=self.quantity,
+                order_type=self.order_type, time_in_force=self.time_in_force,
+                limit_price=self.limit_price, stop_price=self.stop_price,
+                reduce_only=True, position_id=self.position_id, protective_role=self.protective_role)
+        elif (self.quantity is not None or self.order_type != "market" or self.time_in_force != "gtc"
+                or self.limit_price is not None or self.stop_price is not None or self.protective_role is not None):
+            raise ValueError("cancellation commands forbid order parameters")
+        return self
+
+
+class SessionCommandCodec:
+    @staticmethod
+    def model_validate_json(wire):
+        return TypeAdapter(EntryCancellationCommand | OCOCommand | AdvancedSessionCommand | SessionCommand).validate_json(wire)
+
+
 class ClockState(PaperContract):
     sequence: Annotated[int, Field(ge=0)] = 0
     timestamp: UtcTimestamp
@@ -120,7 +186,8 @@ class FeedState(PaperContract):
 
 SessionReason = Literal["started", "paused", "resumed", "stopped", "failed",
     "evaluated", "submitted", "opening_processed", "observed", "inactive",
-    "missing", "stale", "interrupted", "exhausted", "no_entry", "terminal_order"]
+    "missing", "stale", "interrupted", "exhausted", "no_entry", "terminal_order",
+    "exit_submitted", "exit_processed", "exit_cancellation", "oco_submitted", "oco_processed", "oco_cancellation", "entry_processed", "entry_cancellation"]
 
 
 class SessionRecord(ContentRecord):
@@ -136,17 +203,37 @@ class SessionRecord(ContentRecord):
     reason: SessionReason
     reason_reference: Identity | None = None
     market_event: ReplayEvent | None = None
-    command: SessionCommand | None = None
+    command: EntryCancellationCommand | OCOCommand | AdvancedSessionCommand | SessionCommand | None = None
     decision: StrategyDecision | None = None
     orders: tuple[PaperEvent, ...] = ()
     financial: tuple[AccountEvent, ...] = ()
     account: AccountSnapshot
     feed: FeedState
     previous_record_id: Digest | None
+    entry_intent: AdvancedEntryIntent | None = None
+    entry_order: KernelProgress | None = None
+    exit_order: KernelProgress | KernelSnapshot | None = None
+    oco: OCOProgress | None = None
+    oco_events: tuple[OCOEvent, ...] = Field(default=(), max_length=2)
+
+    @model_serializer(mode="wrap")
+    def legacy_wire(self, handler):
+        body = handler(self)
+        if self.entry_intent is None:
+            body.pop("entry_intent", None)
+        if self.entry_order is None:
+            body.pop("entry_order", None)
+        if self.exit_order is None:
+            body.pop("exit_order", None)
+        if self.oco is None:
+            body.pop("oco", None)
+        if not self.oco_events:
+            body.pop("oco_events", None)
+        return body
 
 
 class SessionSnapshot(PaperContract):
-    config: ReplayConfig
+    config: AdvancedEntryReplayConfig | AdvancedReplayConfig | ReplayConfig
     state: SessionState
     clock: ClockState
     feed: FeedState
@@ -154,3 +241,13 @@ class SessionSnapshot(PaperContract):
     runtime: RuntimeSnapshot
     execution: StrategyOrderSnapshot
     records: tuple[SessionRecord, ...]
+    exit_order: KernelSnapshot | None = None
+
+    oco: OCOSnapshot | None = None
+
+    @model_serializer(mode="wrap")
+    def compatible_wire(self, handler):
+        body = handler(self)
+        if self.oco is None:
+            body.pop("oco", None)
+        return body

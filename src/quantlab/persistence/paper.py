@@ -3,23 +3,29 @@ from dataclasses import replace
 from itertools import islice
 
 from quantlab.paper.errors import PaperInputError
-from quantlab.paper.models import CancellationRequest, OrderState, stable_id
+from quantlab.paper.models import CancellationRequest, OrderState, KernelSnapshot, KernelProgress, stable_id
 from quantlab.paper.feed import advance_clock, accept_delivery, feed_reason
 from quantlab.paper.sessions import PaperSession
-from quantlab.paper.session_models import ClockState, SessionCommand, SessionState as S
+from quantlab.paper.session_models import ClockState, SessionCommand, SessionState as S, AdvancedReplayConfig, AdvancedEntryReplayConfig
 from quantlab.paper.strategy_models import record
 from .contracts import (Checkpoint, Effects, PersistenceError, RecoveryRequired, StoragePolicy)
 from .store import Manifest, SQLitePaperStore, _TransactionState
 from .contracts import decode
-from quantlab.paper.account_models import ReserveFunds, ReleaseFunds, ApplyFill, MarkAccount
+from quantlab.paper.account_models import ReserveFunds, ReleaseFunds, ApplyFill, AdvancedApplyFill, OCOApplyFill, MarkAccount
+
+
+def _entry_state(publication):
+    adapter = publication.adapter
+    return adapter._kernel._progress() if adapter._advanced else adapter.snapshot
 
 
 def _effects(publication, outcome):
     account = publication.account
-    kinds = {"reserve": ReserveFunds, "release": ReleaseFunds, "settle": ApplyFill, "mark": MarkAccount}
+    kinds = {"reserve": ReserveFunds, "release": ReleaseFunds, "settle": ApplyFill, "settle_advanced": AdvancedApplyFill, "settle_oco": OCOApplyFill, "mark": MarkAccount}
     financial = tuple(decode(kinds[e.kind], account.get_input_record(e.input_id)) for e in outcome.financial)
-    return Effects(kernel=publication.adapter.snapshot, intent=publication.runtime._publication.intent,
-                   financial_inputs=financial)
+    return Effects(kernel=_entry_state(publication), intent=publication.runtime._publication.intent,
+                   financial_inputs=financial, oco=outcome.oco,
+                   **({} if publication.exit_kernel is None else {"exit_kernel": outcome.exit_order}))
 
 
 def _checkpoint(manifest, entry, publication, outcome):
@@ -28,9 +34,13 @@ def _checkpoint(manifest, entry, publication, outcome):
     body = dict(schema_version=1, session_id=manifest.config.strategy.session_id,
         binding_digest=manifest.binding_digest, ordinal=entry.ordinal, head_digest=entry.digest,
         record_id=outcome.record_id, state=p.state, clock=p.clock, feed=p.feed,
-        account=p.account.snapshot, kernel=p.adapter.snapshot, intent=r.intent,
+        account=p.account.snapshot, kernel=_entry_state(p), intent=r.intent,
         runtime_sequence=r.last_sequence, runtime_timestamp=r.timestamp,
         runtime_count=r.count, financial_count=p.account.snapshot.event_sequence)
+    if p.exit_kernel is not None:
+        body["exit_kernel"] = outcome.exit_order
+    if outcome.oco is not None:
+        body["oco"] = outcome.oco
     return Checkpoint(**body, digest=stable_id("paper-durable-checkpoint-v1", body))
 
 
@@ -54,7 +64,8 @@ class DurablePaperSession(PaperSession):
         owner_digest = stable_id("paper-durable-owners-v1", (strategy, policy, eligibility,
             tuple(sorted(evidence._records))))
         admission = self._publication.runtime.admission.record_id
-        body = dict(schema_version=1, engine_version="paper-18e-v1", config=self.config,
+        body = dict(schema_version=1, engine_version="paper-18f-entries-v3" if type(self.config) is AdvancedEntryReplayConfig else (
+            "paper-18f-exits-v2" if isinstance(self.config, AdvancedReplayConfig) else "paper-18e-v1"), config=self.config,
             policy=storage_policy, owner_digest=owner_digest, admission_digest=admission)
         self._manifest = Manifest(**body, binding_digest=stable_id("paper-durable-binding-v1", body))
         store._bind(self, self._manifest, recover=_recover)
@@ -162,7 +173,7 @@ class DurablePaperSession(PaperSession):
                 owner._restore_checkpoint(cp, retained[:cp.ordinal])
                 owner.recovery_checkpoint_ordinal = cp.ordinal
             for entry, item, expected, effects in retained[owner.recovery_checkpoint_ordinal:]:
-                actual = owner.process(item)
+                actual = owner._replay_item(item, expected)
                 if actual != expected or _effects(owner._publication, actual) != effects:
                     raise PersistenceError("replay_mismatch")
                 owner.recovery_replayed_inputs += 1
@@ -182,6 +193,14 @@ class DurablePaperSession(PaperSession):
                 raise PersistenceError(reason) from exc
             raise
 
+    def _replay_item(self, item, expected):
+        # Existing v2 full-history wires retain their IDs; new writes use heads.
+        self._legacy_exit_record = isinstance(expected.exit_order, KernelSnapshot)
+        try:
+            return self.process(item)
+        finally:
+            self._legacy_exit_record = False
+
     def _verify_checkpoint(self, cp, retained):
         if cp.binding_digest != self._manifest.binding_digest or cp.session_id != self.config.strategy.session_id or not 1 <= cp.ordinal <= len(retained):
             raise PersistenceError("checkpoint_reference")
@@ -192,6 +211,8 @@ class DurablePaperSession(PaperSession):
         if (cp.head_digest != entry.digest or cp.record_id != out.record_id
                 or cp.state != out.state or cp.clock != ClockState(sequence=item.sequence, timestamp=item.timestamp)
                 or cp.feed != out.feed or cp.account != out.account or cp.kernel != effects.kernel
+                or cp.exit_kernel != effects.exit_kernel or cp.exit_kernel != out.exit_order
+                or cp.oco != effects.oco or cp.oco != out.oco
                 or cp.intent != effects.intent or cp.runtime_count != len(decisions)
                 or cp.financial_count != sum(len(r.financial) for _, _, r, _ in prefix)
                 or cp.runtime_sequence != (last.sequence if last else 0)
@@ -205,6 +226,21 @@ class DurablePaperSession(PaperSession):
         acknowledgement publication. Digests alone do not establish semantics.
         No prefix SessionRecord is regenerated or durably written.
         """
+        if isinstance(self.config, AdvancedReplayConfig):
+            # V2 keeps full operational replay, including exit ownership and
+            # acknowledgements. A checkpoint is verified, not a trust shortcut.
+            for _, item, out, effects in retained:
+                actual = self._replay_item(item, out)
+                if actual != out or _effects(self._publication, actual) != effects:
+                    raise PersistenceError("checkpoint_operation_mismatch")
+            if (self._publication.account.oco_progress != cp.oco or
+                    self._publication.account.snapshot != cp.account or
+                    _entry_state(self._publication) != cp.kernel or
+                    (None if self._publication.exit_kernel is None else
+                     self._publication.exit_kernel._progress() if isinstance(cp.exit_kernel, KernelProgress) else
+                     self._publication.exit_kernel.snapshot) != cp.exit_kernel):
+                raise PersistenceError("checkpoint_state")
+            return
         p = self._publication
         account, runtime, adapter = p.account, p.runtime, p.adapter
         if cp.kernel.config != adapter._kernel._config:

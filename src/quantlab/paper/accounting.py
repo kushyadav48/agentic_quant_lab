@@ -5,7 +5,7 @@ from quantlab.backtesting import PositionSide, SignalAction
 from quantlab.backtesting.execution import price_execution
 from .account_models import (
     AccountCommand, AccountConfig, AccountEvent, AccountPosition, AccountSnapshot, ApplyFill,
-    MarkAccount, ReleaseFunds, ReserveFunds, ZERO, exact_context,
+    AdvancedApplyFill, OCOApplyFill, FundReservation, MarkAccount, ReleaseFunds, ReserveFunds, ZERO, exact_context,
 )
 from .errors import PaperFundingError, PaperInputError
 from .models import stable_id
@@ -48,7 +48,7 @@ def transition_account(state: AccountSnapshot, item: AccountCommand) -> tuple[Ac
     A caller cannot replace its authoritative state with the returned snapshot.
     """
     try:
-        if type(item) not in (ReserveFunds, ReleaseFunds, ApplyFill, MarkAccount):
+        if type(item) not in (ReserveFunds, ReleaseFunds, ApplyFill, AdvancedApplyFill, OCOApplyFill, MarkAccount):
             raise ValueError("expected a strict account input")
         state = AccountSnapshot.model_validate(state)
         item = type(item).model_validate(item)
@@ -118,22 +118,44 @@ def transition_account(state: AccountSnapshot, item: AccountCommand) -> tuple[Ac
                     raise ValueError("rounded explicit costs unsupported")
                 fees += explicit
                 if entry:
-                    if active or item.reservation_id is None:
+                    continuation = active and isinstance(item, AdvancedApplyFill)
+                    if (active and not continuation) or item.reservation_id is None:
                         raise ValueError("entry requires flat ownership and a reservation")
+                    if continuation and (position.strategy_id != item.strategy_id or
+                            position.entry_transaction_id != item.transaction_id or
+                            position.direction is not (PositionSide.LONG if long else PositionSide.SHORT) or
+                            item.cumulative_quantity != position.quantity + fill.quantity):
+                        raise ValueError("partial entry must continue the exact owned entry")
+                    if isinstance(item, AdvancedApplyFill) and not continuation and item.cumulative_quantity != fill.quantity:
+                        raise ValueError("first partial entry quantity mismatch")
                     matches = [r for r in reservations if r.reservation_id == item.reservation_id]
                     if (not matches or matches[0].strategy_id != item.strategy_id
                             or matches[0].order_id != item.order_id):
                         raise ValueError("fill reservation ownership mismatch")
+                    retained = matches[0]
                     reservations = tuple(r for r in reservations if r.reservation_id != item.reservation_id)
+                    if isinstance(item, AdvancedApplyFill) and item.remaining_quantity > 0 and not item.release_remaining:
+                        # Keep all unconsumed collateral, including the conservative
+                        # per-execution fee allowance, until completion/cancellation.
+                        remaining_amount = retained.amount - price * fill.quantity - explicit
+                        if remaining_amount <= 0:
+                            raise PaperFundingError("partial fill would consume remaining collateral")
+                        reservations = (*reservations, FundReservation(**{
+                            **retained.model_dump(), "amount": remaining_amount}))
                     direction = PositionSide.LONG if long else PositionSide.SHORT
+                    quantity = fill.quantity + (position.quantity if continuation else ZERO)
+                    basis_cost = price * fill.quantity + (position.cost_basis if continuation else ZERO)
+                    basis = basis_cost / quantity
+                    entry_time = position.entry_time if continuation else item.timestamp
+                    entry_fees = explicit + (position.fees_paid if continuation else ZERO)
                     mark = source.quote.bid if long else source.quote.ask
-                    unrealized = (mark - price if long else price - mark) * fill.quantity
+                    unrealized = (mark - basis if long else basis - mark) * quantity
                     position = AccountPosition(account_id=item.account_id,
                         strategy_id=item.strategy_id, instrument=state.config.instrument,
-                        direction=direction, quantity=fill.quantity, entry_basis=price,
-                        cost_basis=price * fill.quantity, unrealized_pnl=unrealized,
-                        fees_paid=explicit, entry_transaction_id=item.transaction_id,
-                        entry_time=item.timestamp, valuation=source)
+                        direction=direction, quantity=quantity, entry_basis=basis,
+                        cost_basis=basis_cost, unrealized_pnl=unrealized,
+                        fees_paid=entry_fees, entry_transaction_id=item.transaction_id,
+                        entry_time=entry_time, valuation=source)
                 else:
                     if (not active or item.reservation_id is not None
                             or position.strategy_id != item.strategy_id
@@ -141,6 +163,9 @@ def transition_account(state: AccountSnapshot, item: AccountCommand) -> tuple[Ac
                             or fill.quantity > position.quantity
                             or fill.signal_time < position.entry_time):
                         raise ValueError("unsupported reversal, reduction or ownership")
+                    if isinstance(item, OCOApplyFill) and (position.entry_transaction_id != item.position_id
+                            or position.quantity - fill.quantity != item.remaining_quantity):
+                        raise ValueError("OCO settlement ignores the live position")
                     gross = (price - position.entry_basis if long else position.entry_basis - price) * fill.quantity
                     realized += gross
                     quantity = position.quantity - fill.quantity

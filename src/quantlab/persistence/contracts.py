@@ -3,13 +3,14 @@ from datetime import timedelta
 import json
 from typing import Annotated, Literal
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, TypeAdapter, model_serializer
 from quantlab.data.models import UtcTimestamp
 from quantlab.strategies.schema import Digest
-from quantlab.paper.models import Identity, KernelSnapshot, PaperContract
+from quantlab.paper.models import Identity, KernelSnapshot, KernelProgress, PaperContract
+from quantlab.paper.oco_models import OCOProgress
 from quantlab.paper.account_models import AccountCommand, AccountSnapshot
 from quantlab.paper.session_models import ClockState, FeedState, SessionState
-from quantlab.paper.strategy_models import EntryIntent
+from quantlab.paper.strategy_models import EntryIntent, AdvancedEntryIntent
 
 
 class PersistenceError(ValueError):
@@ -78,11 +79,25 @@ class StoragePolicy(PaperContract):
     durability: Literal["sqlite-delete-extra-exclusive-v1"] = "sqlite-delete-extra-exclusive-v1"
 
 
-class Effects(PaperContract):
+class ExitState(PaperContract):
+    exit_kernel: KernelProgress | KernelSnapshot | None = None
+    oco: OCOProgress | None = None
+
+    @model_serializer(mode="wrap")
+    def legacy_wire(self, handler):
+        body = handler(self)
+        if self.exit_kernel is None:
+            body.pop("exit_kernel", None)
+        if self.oco is None:
+            body.pop("oco", None)
+        return body
+
+
+class Effects(ExitState):
     """Bounded generated state, not another accounting authority."""
     schema_version: Literal[1] = 1
-    kernel: KernelSnapshot
-    intent: EntryIntent | None
+    kernel: KernelProgress | KernelSnapshot
+    intent: AdvancedEntryIntent | EntryIntent | None
     financial_inputs: tuple[AccountCommand, ...] = ()
 
 
@@ -104,7 +119,7 @@ class JournalEntry(PaperContract):
     digest: Digest
 
 
-class Checkpoint(PaperContract):
+class Checkpoint(ExitState):
     schema_version: Literal[1] = 1
     session_id: Identity
     binding_digest: Digest
@@ -115,8 +130,8 @@ class Checkpoint(PaperContract):
     clock: ClockState
     feed: FeedState
     account: AccountSnapshot
-    kernel: KernelSnapshot
-    intent: EntryIntent | None
+    kernel: KernelProgress | KernelSnapshot
+    intent: AdvancedEntryIntent | EntryIntent | None
     runtime_sequence: Annotated[int, Field(ge=0)]
     runtime_timestamp: UtcTimestamp
     # History and idempotency are references to the validated retained prefix.
