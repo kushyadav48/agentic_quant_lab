@@ -1,5 +1,12 @@
 # Architecture
 
+**Phase 19 update:** bounded static portfolio membership, capital/risk ownership,
+independent-session attribution, same-currency valuation and consolidated
+reporting are implemented in `quantlab.portfolio`. Phase 18 execution and durable
+session ownership retain their existing restrictions. See
+[portfolio-management.md](portfolio-management.md) for the public contracts and
+the Phase 19 architecture below.
+
 **Status: Phases 1 through 17 implemented; Phase 17 is COMPLETE and externally runtime-verified under Python 3.11.17.** Phases 18A–18E implement the offline order kernel, deterministic prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and opt-in durable local persistence/recovery; a bounded Phase 18F v2 order/exit stage is now present with retained-history copying remediated; continuous external feeds remain planned. This document is the current architectural source of truth. The existing implementation consists of the package/configuration foundation, market-data domain contracts, the isolated Dukascopy historical quote-ingestion adapter, Phase 4 validation, UTC resampling, local dataset storage, Phase 5 strategy specification contracts, the Phase 6 causal feature engine, and the Phase 7 deterministic research backtester with Phase 8 execution costs, Phase 9 performance analytics, Phase 10 research validation, Phase 11 deterministic entry risk, Phase 12 offline ML research and Phase 13 provider-neutral LLM infrastructure plus Phase 14 natural-language and Phase 15 chart + text strategy interpretation, and Phase 16 bounded LangGraph orchestration described below. Layer names in the planned architecture describe responsibilities, not a complete module tree already present in the repository.
 
 ## Goals and boundaries
@@ -10,7 +17,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Remaining Phase 18 and Phase 19+ functionality is planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F and the bounded Phase 19 portfolio foundation are implemented; broader execution and Phase 20+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -940,3 +947,34 @@ checkpoint state uses versioned KernelProgress heads; consumer snapshots retain 
 history. Recovery verifies both older snapshot records and new heads operationally.
 See [paper-advanced-orders.md](paper-advanced-orders.md) and
 [phase18f-report.md](phase18f-report.md) for semantics, tests and measured costs.
+
+
+## Implemented Phase 19 portfolio foundation
+
+`quantlab.portfolio` is a separate reporting and static budget owner. It consumes
+immutable Phase 18 configuration/admission/account/session contracts and explicit
+market valuations. It has no reference to a mutable paper owner and no order,
+account-write, transport, agent or persistence dependency. Existing engines do not
+import it. Trusted application code constructs membership from already admitted
+sessions and delivers each committed session record in order.
+
+Portfolio capital is partitioned into immutable member allocations and a declared
+unallocated reserve. Member encumbrance/gross-exposure budgets compete for explicit
+portfolio limits before membership publication. Accounts retain independent
+funding, collateral, risk gates and execution authority. Consolidation never
+offsets opposite positions or increases an account's spendable capital.
+
+Current immutable views retain strategy approval/version/content, admission,
+replay configuration, account, session head/state/feed and quote provenance.
+Exact Decimal liquidation equity/P&L/exposure is available only with complete
+compatible fresh coverage. Independent portfolio marks leave paper account
+economics untouched; last-reported account equity is separately labeled.
+
+One immutable publication root selects current views, a content-addressed event
+history and persistent retry index together. Preparation errors publish nothing;
+exact retries preserve prior results. Hot processing traverses bounded current
+membership and the new input, with no retained-history copying. Fresh-owner replay
+verifies the caller-retained journal, but portfolio durability and atomic
+cross-session execution are absent. Existing SQLite paper recovery retains its
+separate operator requirements. See [portfolio-management.md](portfolio-management.md)
+and [phase19-report.md](phase19-report.md) for contracts, formulas, limits and tests.
