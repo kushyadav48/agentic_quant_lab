@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1 through 17 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 implementation is COMPLETE and externally runtime-verified; Phases 18A–18E add the offline order kernel, prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and durable local persistence/recovery; the supported bounded Phase 18F scope includes advanced orders, protective OCO and separately approved durable strategy entries, with retained-history copying remediated; bounded Phase 19 portfolio coordination and Phase 20 trade/research history are implemented; Phases 21–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1 through 17 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 implementation is COMPLETE and externally runtime-verified; Phases 18A–18E add the offline order kernel, prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and durable local persistence/recovery; the supported bounded Phase 18F scope includes advanced orders, protective OCO and separately approved durable strategy entries, with retained-history copying remediated; bounded Phase 19 portfolio coordination and Phase 20 trade/research history are implemented; bounded Phase 21 local FastAPI is implemented; Phases 22–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -407,13 +407,29 @@ transactions do not span those stores. See [phase20-report.md](phase20-report.md
 
 Automatic capture, missing original request retention, new research workflows,
 arbitrary standalone accounting imports, snapshot pagination, authentication,
-distributed storage, API/dashboard and live brokerage remain deferred.
+distributed storage, dashboard and live brokerage remain deferred. Phase 21 below
+supplies authenticated read-only HTTP queries; journal mutation APIs remain deferred.
 
 ## 21. FastAPI application/API
 
 Purpose: expose the mature core through a stable backend contract.
 
 Deliverables: API schemas/routes, application-service wiring, job/status interfaces, configuration, structured logging, and authentication/authorization appropriate to deployment. Introduce PostgreSQL/migrations if now justified by persistence requirements. Verify that API paths share approval and risk gates with MCP/direct services.
+
+**Bounded scope implemented.** The local `quantlab.api` factory exposes authenticated
+versioned strategy validation, existing Phase 17 deterministic operation admission,
+explicit execution/cancellation/status/typed results, and read-only injected Phase 18
+paper, Phase 19 portfolio and Phase 20 journal reports. A dedicated bounded service
+thread keeps quant/SQLite work off the event loop and preserves owner lifetimes.
+Reader/operator bearer roles, fail-closed configuration, loopback startup, strict
+JSON/byte/page/output bounds, restricted CORS, sanitized errors and structured
+correlations are implemented. Existing exact approval, risk, causality, idempotency,
+audit and recovery semantics are preserved. Offline ASGI tests and representative
+latency observations are recorded in [phase21-report.md](phase21-report.md).
+
+No background/durable job worker, multi-user production security, paper commands,
+HTTP approval/recovery, journal writes, live brokerage, dashboard or PostgreSQL
+migration is introduced. Phase 22 and later phases remain planned.
 
 ## 22. Professional dashboard/frontend
 

@@ -1,5 +1,37 @@
 # Architecture
 
+## Implemented Phase 21 HTTP application
+
+`quantlab.api.create_app` isolates FastAPI from quantitative packages. Versioned
+routers use strict existing JSON contracts, HTTP-only status/result envelopes,
+reader/operator authentication dependencies, and an injected `ApplicationServices`
+factory. HTTP calls existing Phase 17 application services directly; there is no
+HTTP-to-MCP transport and no second research, risk or accounting implementation.
+
+Explicit lifespan constructs and closes a dedicated single-thread service lane.
+Quant execution, strict body decoding, SQLite reporting and large response
+serialization run there; a busy lane rejects new work with 503 rather than building
+an execution queue. Existing operation locking permits concurrent metadata polling
+and queued cancellation. Request cancellation does not interrupt real quant work;
+shutdown drains it before closing owners. A trusted factory must construct owners
+on this thread, hand them over exclusively, and close partial construction on failure.
+
+Default startup owns a fresh process-local `ResearchOperations` namespace and,
+optionally, the existing Phase 20 `SQLiteJournal`. Paper sessions and portfolios
+are injected existing owners and remain read-only through HTTP. Their lifetimes,
+financial authority and durable/operator recovery gates remain with existing
+owners. A supplied cleanup callback closes registered paper stores; the application
+closes its journal. There are no new schemas, migrations, journal imports, account
+writes, PostgreSQL dependencies, approval actions, feeds or recovery commands.
+
+Local bearer secrets define trusted reader/operator access to one namespace, not
+multi-user tenancy or approval-signature verification. Request bytes, nesting,
+page sizes, reporting catalogues and serialized outputs are bounded. App logs
+contain generated correlations, fixed route names/status and operation digests;
+the launcher suppresses server traceback contents and URL access logs. Exact
+Decimal strings, UTC timestamps and original canonical result bytes/digests are
+preserved. See [phase21-report.md](phase21-report.md) for the complete contract.
+
 **Phase 19 update:** bounded static portfolio membership, capital/risk ownership,
 independent-session attribution, same-currency valuation and consolidated
 reporting are implemented in `quantlab.portfolio`. Phase 18 execution and durable
@@ -17,7 +49,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; broader execution and Phase 21+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; bounded Phase 21 local HTTP research/reporting is implemented; broader execution and Phase 22+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -732,7 +764,7 @@ Link strategy versions, approval records, research runs, simulated orders/fills,
 
 ### API/backend
 
-A future FastAPI application will provide transport schemas, authentication/authorization when deployed, input validation, job control, and access to application services. Business rules remain in the Python core/services, not route handlers. The API must not expose credentials or permit clients to assert approval/eligibility without authorized transitions.
+The bounded Phase 21 FastAPI application provides versioned transport schemas, local reader/operator authentication, strict input validation, explicit process-local research operations and read-only reporting through existing services. See the implemented HTTP application section above. Business rules remain in Python core/services. HTTP grants no strategy approval, paper admission, order execution or recovery authority; supplied research approval records retain the Phase 17 trusted-operator boundary rather than adding signature verification.
 
 Introduce background workers only when workload demands them. Design request/run identifiers and error contracts before adding distributed infrastructure. CLI/tests and the API should invoke the same services rather than duplicate financial logic.
 

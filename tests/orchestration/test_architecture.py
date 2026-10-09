@@ -28,6 +28,7 @@ def test_dependency_and_explicit_exports():
     project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
     assert project["dependencies"] == [
         "pydantic>=2.10,<3", "langgraph>=1.2.12,<2", "mcp>=2.3,<3",
+        "fastapi>=0.143,<1", "uvicorn>=0.30,<1",
     ]
     assert len(orchestration.__all__) == len(set(orchestration.__all__))
     assert all(hasattr(orchestration, name) for name in orchestration.__all__)
