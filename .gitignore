@@ -88,3 +88,6 @@ pip-wheel-metadata/
 node_modules/
 frontend/coverage/
 frontend/.npm-cache/
+.aws/
+credentials.json
+.runtime/

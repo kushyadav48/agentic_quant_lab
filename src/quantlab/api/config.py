@@ -14,6 +14,7 @@ class APISettings(BaseModel):
     operator_token: SecretStr = Field(repr=False)
     reader_token: SecretStr | None = Field(default=None, repr=False)
     journal_path: Path | None = Field(default=None, repr=False)
+    frontend_path: Path | None = Field(default=None, repr=False)
     cors_origins: tuple[str, ...] = ()
     max_request_bytes: int = Field(default=1_048_576, ge=1024, le=1_048_576)
     max_concurrent_requests: int = Field(default=16, ge=1, le=64)
@@ -44,6 +45,8 @@ class APISettings(BaseModel):
                 if os.environ.get("QUANTLAB_API_READER_TOKEN") else None,
                 journal_path=Path(os.environ["QUANTLAB_API_JOURNAL_PATH"])
                 if os.environ.get("QUANTLAB_API_JOURNAL_PATH") else None,
+                frontend_path=Path(os.environ["QUANTLAB_API_FRONTEND_PATH"])
+                if os.environ.get("QUANTLAB_API_FRONTEND_PATH") else None,
                 cors_origins=tuple(filter(None, os.environ.get("QUANTLAB_API_CORS_ORIGINS", "").split(","))),
                 port=int(os.environ.get("QUANTLAB_API_PORT", "8000")),
                 cloud=CloudSettings.from_env(),

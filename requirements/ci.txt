@@ -1,0 +1,3 @@
+# Security/workflow tools, separate from application runtime.
+pip-audit==2.9.0
+PyYAML==6.0.3

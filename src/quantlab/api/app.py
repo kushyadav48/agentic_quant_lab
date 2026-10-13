@@ -21,6 +21,7 @@ from .schemas import ErrorResponse, Health
 from .security import BoundaryMiddleware, require_reader, logger
 from .services import ServiceLane, default_services
 from .ai import AIJobs
+from .static import mount_dashboard
 
 
 def create_app(settings: APISettings | None = None, *, services_factory=None, ai_factory=None) -> FastAPI:
@@ -86,6 +87,9 @@ def create_app(settings: APISettings | None = None, *, services_factory=None, ai
     @app.get("/openapi.json", dependencies=[Depends(require_reader)], include_in_schema=False)
     async def openapi_document():
         return JSONResponse(app.openapi())
+
+    if settings.frontend_path is not None:
+        mount_dashboard(app, settings.frontend_path)
 
     @app.exception_handler(APIError)
     async def api_error(request: Request, exc: APIError):

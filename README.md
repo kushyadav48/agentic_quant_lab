@@ -1,5 +1,14 @@
 # Agentic Quant Research & Trading Lab
 
+Phase 24 adds pinned install profiles, GitHub Actions checks, verified production
+dashboard serving through the authenticated loopback FastAPI process, Windows
+startup/health scripts and candidate release preparation. Start with the
+[fresh Windows installation and deployment runbook](docs/deployment.md),
+[CI/release checklist](docs/release-engineering.md) and
+[Phase 24 verification report](docs/phase24-report.md). No cloud request, financial
+resume, tag, publication or final V1.0 approval happens automatically.
+GitHub-hosted CI and the post-fix live Gemini/browser gates remain pending.
+
 Phase 23 adds server-side Gemini cloud strategy interpretation, explicit authenticated
 AI jobs, and an exact-proposal handoff to the existing approved deterministic backtest
 workflow. Cloud inference is disabled by default and requires current operator
@@ -7,7 +16,8 @@ verification of free-tier model eligibility and disabled billing. No local model
 automatic approval, trading authority or paid fallback is introduced. See
 [cloud setup and API contracts](docs/cloud-llm.md) and
 [the Phase 23 implementation/acceptance report](docs/phase23-report.md).
-The real-provider smoke **PASSED** on `gemini-3.1-flash-lite` (user-supplied evidence).
+The earlier real-provider smoke **PASSED** on `gemini-3.1-flash-lite` (user-supplied evidence)
+before the final adapter fixes; a post-fix live smoke remains a Phase 25 gate.
 The [focused final acceptance audit](docs/phase23-acceptance-audit.md) passed after
 three adapter corrections. Full browser/provider research workflow verification
 remains a separate manual check; Phase 25 release acceptance is not implied.
@@ -29,7 +39,8 @@ without requiring a token. It is never presented as connected account data.
 For local development in PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
+.\.venv\Scripts\python.exe -m pip install -r requirements/build.txt
+.\.venv\Scripts\python.exe -m pip install --no-build-isolation -c requirements/constraints.txt -e '.[dev]'
 # Generate an ephemeral operator secret without printing it; retain securely if needed.
 $env:QUANTLAB_API_OPERATOR_TOKEN = (& .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))")
 .\.venv\Scripts\python.exe -m quantlab.api
@@ -85,7 +96,7 @@ See [the architecture source of truth](docs/architecture.md) for layer responsib
 | AI | Provider-neutral LLM boundary | Phase 13 infrastructure, Phase 14/15 interpretation, Phase 16 review and Phase 17 bounded MCP implemented; real adapters deferred |
 | Backend/storage | FastAPI, PostgreSQL, storage adapters | Local SQLite owners and bounded Phase 21 FastAPI implemented; PostgreSQL deferred |
 | Frontend | React, TypeScript, Vite, Lightweight Charts | Phase 22 local research/reporting dashboard implemented; publishing deferred |
-| Engineering | pytest, Git, structured logging; Docker and CI later | pytest development extra and existing Git metadata |
+| Engineering | pytest, Git, structured logging, GitHub Actions | Phase 24 local build/deploy and candidate tooling; Docker deferred |
 
 Pydantic, LangGraph, MCP, FastAPI and Uvicorn are direct runtime dependencies; HTTPX supports offline ASGI tests. LangGraph adds its required transitive packages; no LangChain model wrappers or LangSmith service are used. Historical ingestion uses urllib, lzma, struct, and Decimal from the standard library. Phase 4 validation/resampling/storage also use the standard library plus existing Pydantic models; SQLite requires no new dependency. Phase 12 ridge fitting uses standard-library Fraction and Decimal, requiring no ML dependency or downloads. pytest is available through the development extra. Further dependencies will be introduced only when implemented functionality needs them.
 
@@ -142,7 +153,8 @@ Use Python 3.11 or newer. From the repository root:
 ```sh
 python -m venv .venv
 # Activate .venv using the command appropriate for your shell.
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements/build.txt
+python -m pip install --no-build-isolation -c requirements/constraints.txt -e ".[dev]"
 python -c "import quantlab"
 ```
 

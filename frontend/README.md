@@ -1,5 +1,15 @@
 # Quant Lab research console · Phase 22
 
+Phase 24 supports the production build at the same loopback origin as FastAPI.
+Follow [the clean Windows installation/runbook](../docs/deployment.md) and
+[CI/release preparation](../docs/release-engineering.md). The supported profile is
+Node 22.16.0 / npm 11.6.2 / Python 3.11.x, with the existing npm lockfile and Python
+constraints. Build using `npm.cmd run build`, then from the repository root run
+`python scripts/build_dashboard.py` and the PowerShell startup command in the runbook. Open
+`http://127.0.0.1:8000`; stop with Ctrl+C and wait for graceful shutdown.
+No Node development server is needed at runtime. Static assets are public;
+connected API requests still require the reader/operator credential.
+
 Phase 23 adds a connected Research panel for server-side Gemini interpretation.
 Check cloud configuration, explicitly select/consent to non-sensitive text,
 submit a stable AI identity, and separately execute it. Inspect the verified draft
@@ -34,8 +44,8 @@ or Disconnect. No token belongs in a Vite environment variable.
 
 Vite binds loopback and proxies only `/api` to the fixed loopback backend. No
 backend CORS change is necessary. `npm.cmd run preview` serves the static build
-without an API proxy: production hosting would need an explicitly configured
-same-origin reverse proxy. Production deployment is outside this increment.
+without an API proxy. Use the Phase 24 FastAPI asset-serving workflow for supported
+production operation; Vite preview alone is not the deployment solution.
 
 The default API process has no paper or portfolio owners. A trusted Python
 application must supply `ApplicationServices` using `create_app(...,
