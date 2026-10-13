@@ -18,8 +18,25 @@ export type Result = Models['BacktestResultResponse'] | Models['HoldoutResultRes
   Models['DatasetResultResponse'] | Models['TrainingResultResponse'] |
   Models['PredictionResultResponse'] | Models['PredictionFeaturesResultResponse'] | Models['PerformanceResultResponse'];
 export type Role = 'reader' | 'operator';
+export type AIStatus = Models['AIStatus'];
+export type AIResult = Models['AIResult'];
+export type AIConfiguration = Models['AIConfiguration'];
 
 const messages: Record<string, string> = {
+  cloud_disabled: 'Cloud inference is disabled. Configure it on the server.',
+  unsupported_provider: 'The selected provider is unsupported or disallowed.',
+  free_policy_rejected: 'Current free-tier eligibility and disabled billing must be verified on the server.',
+  credentials_missing: 'Gemini credentials are missing on the server.',
+  credentials_invalid: 'The provider rejected the server credentials.',
+  provider_unavailable: 'The provider or its optional SDK is unavailable.',
+  provider_timeout: 'The provider request timed out. Inspect this job before submitting another.',
+  rate_limited: 'The provider rate limit was reached. No automatic retry occurred.',
+  quota_exhausted: 'The provider quota is exhausted. No fallback occurred.',
+  budget_exhausted: 'The process-session cloud request budget is exhausted.',
+  cloud_busy: 'A cloud request is already running.',
+  cloud_input_rejected: 'The selected cloud input exceeds policy or contains protected content.',
+  invalid_model_response: 'The model output failed complete structured validation.',
+  research_validation_rejected: 'Deterministic validation rejected the proposal or approved research binding.',
   unauthenticated: 'Credential rejected. Disconnect and enter a valid token.',
   unauthorized: 'Credential rejected. Disconnect and enter a valid token.',
   forbidden: 'This action requires an operator credential.',
@@ -115,6 +132,19 @@ export class APIClient {
     return parseExactJSON(await response.text(), { preserveLargeIntegers: true }) as T;
   }
   capabilities(signal?: AbortSignal) { return this.request<Capabilities>('/capabilities', undefined, signal); }
+  aiConfiguration() { this.live(); return this.request<AIConfiguration>('/ai/configuration'); }
+  aiSubmit(body: Models['AIInput']) { this.live(); this.operator(); return this.request<AIStatus>('/ai/interpretations', body); }
+  aiStatus(id: string) { this.live(); return this.request<AIStatus>('/ai/interpretations/' + this.digest(id)); }
+  aiExecute(id: string) { this.live(); this.operator(); return this.request<AIStatus>('/ai/interpretations/' + this.digest(id) + '/execute', undefined, undefined, 'POST'); }
+  aiCancel(id: string) { this.live(); this.operator(); return this.request<AIStatus>('/ai/interpretations/' + this.digest(id) + '/cancel', undefined, undefined, 'POST'); }
+  async aiResult(id: string) {
+    this.live(); const result = await this.request<AIResult>('/ai/interpretations/' + this.digest(id) + '/result');
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(result.result_json));
+    if (Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join('') !== result.result_digest)
+      throw new Error('AI result digest verification failed.');
+    return { ...result, result: parseExactJSON(result.result_json, { preserveLargeIntegers: true }) as AIResult['result'] };
+  }
+  aiResearch(id: string, submission: Submission) { this.live(); this.operator(); return this.request<Operation>('/ai/research/operations', { interpretation_job_id: this.digest(id), submission }); }
   validate(content: Models['StrategyValidationRequest']['content']) { return this.request<Validation>('/strategies/validate', { content }); }
   submit(body: Submission) { this.operator(); return this.request<Operation>('/research/operations', body); }
   operation(id: string) { return this.request<Operation>('/research/operations/' + this.digest(id)); }
@@ -127,5 +157,6 @@ export class APIClient {
   research(query: JournalQuery, signal?: AbortSignal) { return this.request<ResearchPage>('/journal/research/query', query, signal); }
   summary(id: string, signal?: AbortSignal) { return this.request<Models['SessionSummary']>('/journal/sessions/' + encodeURIComponent(id) + '/summary', undefined, signal); }
   private operator() { if (this.role !== 'operator') throw new APIError(403, 'forbidden'); }
+  private live() { if (this.source !== 'api') throw new Error('Cloud inference is unavailable in Synthetic Demo.'); }
   private digest(id: string) { if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('Operation identity must be a 64-character SHA-256 digest.'); return id; }
 }

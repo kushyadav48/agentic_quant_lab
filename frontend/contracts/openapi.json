@@ -5,6 +5,943 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/ai/configuration": {
+      "get": {
+        "summary": "Ai Configuration",
+        "operationId": "ai_configuration_api_v1_ai_configuration_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIConfiguration"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/interpretations": {
+      "post": {
+        "summary": "Ai Submit",
+        "operationId": "ai_submit_api_v1_ai_interpretations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/interpretations/{job_id}": {
+      "get": {
+        "summary": "Ai Status",
+        "operationId": "ai_status_api_v1_ai_interpretations__job_id__get",
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/interpretations/{job_id}/execute": {
+      "post": {
+        "summary": "Ai Execute",
+        "operationId": "ai_execute_api_v1_ai_interpretations__job_id__execute_post",
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/interpretations/{job_id}/cancel": {
+      "post": {
+        "summary": "Ai Cancel",
+        "operationId": "ai_cancel_api_v1_ai_interpretations__job_id__cancel_post",
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/interpretations/{job_id}/result": {
+      "get": {
+        "summary": "Ai Result",
+        "operationId": "ai_result_api_v1_ai_interpretations__job_id__result_get",
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/research/operations": {
+      "post": {
+        "summary": "Ai Research",
+        "operationId": "ai_research_api_v1_ai_research_operations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIResearchSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported Media Type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "LocalBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ready": {
       "get": {
         "summary": "Readiness",
@@ -71,7 +1008,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -91,7 +1028,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -194,7 +1131,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -214,7 +1151,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -327,7 +1264,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -347,7 +1284,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -460,7 +1397,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -480,7 +1417,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -609,7 +1546,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -629,7 +1566,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -746,7 +1683,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -766,7 +1703,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -883,7 +1820,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -903,7 +1840,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -1063,7 +2000,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -1083,7 +2020,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -1200,7 +2137,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -1220,7 +2157,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -1337,7 +2274,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -1357,7 +2294,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -1458,7 +2395,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -1478,7 +2415,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -1591,7 +2528,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -1611,7 +2548,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -1740,7 +2677,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "Request Entity Too Large"
           },
           "415": {
             "content": {
@@ -1760,7 +2697,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Unprocessable Entity"
           },
           "500": {
             "content": {
@@ -1851,7 +2788,7 @@
             }
           },
           "413": {
-            "description": "Content Too Large",
+            "description": "Request Entity Too Large",
             "content": {
               "application/json": {
                 "schema": {
@@ -1871,7 +2808,7 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -1906,6 +2843,207 @@
   },
   "components": {
     "schemas": {
+      "AIConfiguration": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "free_only": {
+            "type": "boolean",
+            "const": true,
+            "title": "Free Only",
+            "default": true
+          },
+          "requests_reserved": {
+            "type": "integer",
+            "title": "Requests Reserved"
+          },
+          "maximum_requests": {
+            "type": "integer",
+            "title": "Maximum Requests"
+          },
+          "maximum_input_tokens": {
+            "type": "integer",
+            "title": "Maximum Input Tokens"
+          },
+          "maximum_output_tokens": {
+            "type": "integer",
+            "title": "Maximum Output Tokens"
+          },
+          "maximum_concurrency": {
+            "type": "integer",
+            "const": 1,
+            "title": "Maximum Concurrency",
+            "default": 1
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "title": "Timeout Ms"
+          },
+          "maximum_jobs": {
+            "type": "integer",
+            "const": 32,
+            "title": "Maximum Jobs",
+            "default": 32
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "provider_id",
+          "model_id",
+          "state",
+          "requests_reserved",
+          "maximum_requests",
+          "maximum_input_tokens",
+          "maximum_output_tokens",
+          "active",
+          "timeout_ms"
+        ],
+        "title": "AIConfiguration"
+      },
+      "AIResult": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Job Id"
+          },
+          "result_digest": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Result Digest"
+          },
+          "result_json": {
+            "type": "string",
+            "title": "Result Json"
+          },
+          "result": {
+            "$ref": "#/components/schemas/InterpretationResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "result_digest",
+          "result_json",
+          "result"
+        ],
+        "title": "AIResult"
+      },
+      "AIStatus": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Job Id"
+          },
+          "request_digest": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Request Digest"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "schema_version": {
+            "type": "string",
+            "const": "interpretation-v1",
+            "title": "Schema Version",
+            "default": "interpretation-v1"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "result_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Digest"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "request_digest",
+          "provider_id",
+          "model_id",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AIStatus"
+      },
       "AccountConfig": {
         "properties": {
           "account_id": {
@@ -1927,6 +3065,7 @@
           },
           "starting_capital": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Starting Capital"
           },
           "timestamp": {
@@ -2048,34 +3187,42 @@
           },
           "balance": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Balance"
           },
           "equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Equity"
           },
           "available_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Available Funds"
           },
           "reserved_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Reserved Funds"
           },
           "position_collateral": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Position Collateral"
           },
           "realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl"
           },
           "unrealized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unrealized Pnl"
           },
           "fees_paid": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Fees Paid"
           }
         },
@@ -2132,28 +3279,34 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "entry_basis": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Entry Basis"
           },
           "cost_basis": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Cost Basis"
           },
           "realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl",
             "default": "0"
           },
           "unrealized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unrealized Pnl",
             "default": "0"
           },
           "fees_paid": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Fees Paid",
             "default": "0"
           },
@@ -2196,43 +3349,52 @@
           },
           "balance": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Balance"
           },
           "available_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Available Funds"
           },
           "reserved_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Reserved Funds",
             "default": "0"
           },
           "position_collateral": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Position Collateral",
             "default": "0"
           },
           "realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl",
             "default": "0"
           },
           "unrealized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unrealized Pnl",
             "default": "0"
           },
           "fees_paid": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Fees Paid",
             "default": "0"
           },
           "equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Equity"
           },
           "running_peak_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Running Peak Equity"
           },
           "position": {
@@ -2912,6 +4074,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "source_bar_start": {
@@ -3036,7 +4199,8 @@
           "limit_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3047,7 +4211,8 @@
           "stop_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3058,7 +4223,8 @@
           "liquidity_per_observation": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3141,7 +4307,8 @@
           "liquidity_per_observation": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3246,10 +4413,12 @@
           },
           "cumulative_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Cumulative Quantity"
           },
           "remaining_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Remaining Quantity"
           },
           "liquidity_policy": {
@@ -3298,10 +4467,12 @@
           },
           "flat_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Flat Equity"
           },
           "running_peak_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Running Peak Equity"
           },
           "risk": {
@@ -3324,7 +4495,8 @@
           "liquidity_per_observation": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3416,6 +4588,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "order_type": {
@@ -3447,7 +4620,8 @@
           "limit_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3458,7 +4632,8 @@
           "stop_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3565,7 +4740,8 @@
           "liquidity_per_observation": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3635,7 +4811,8 @@
           "quantity": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3666,7 +4843,8 @@
           "limit_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3677,7 +4855,8 @@
           "stop_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -3764,6 +4943,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "risk": {
@@ -3813,6 +4993,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -3826,6 +5007,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -4028,6 +5210,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4040,6 +5223,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4097,6 +5281,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4109,6 +5294,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4158,6 +5344,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4169,6 +5356,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4180,6 +5368,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4550,7 +5739,7 @@
               "live_execution",
               "background_workers",
               "durable_jobs",
-              "llm_interpretation",
+              "cloud_multimodal",
               "dataset_download",
               "journal_writes",
               "portfolio_mutations"
@@ -4568,6 +5757,29 @@
           "journal"
         ],
         "title": "Capabilities"
+      },
+      "Clarification": {
+        "properties": {
+          "ambiguity": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Ambiguity"
+          },
+          "question": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ambiguity",
+          "question"
+        ],
+        "title": "Clarification"
       },
       "ClockState": {
         "properties": {
@@ -4603,6 +5815,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4625,6 +5838,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4637,6 +5851,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4662,6 +5877,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4673,6 +5889,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4685,6 +5902,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4699,6 +5917,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4710,6 +5929,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4765,6 +5985,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -4791,6 +6012,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4804,6 +6026,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4817,6 +6040,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4830,6 +6054,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -4936,22 +6161,27 @@
           },
           "mean_total_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Mean Total Return"
           },
           "median_total_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Median Total Return"
           },
           "minimum_total_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Minimum Total Return"
           },
           "maximum_total_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Total Return"
           },
           "total_return_range": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total Return Range"
           },
           "closed_trade_count": {
@@ -4961,14 +6191,17 @@
           },
           "mean_maximum_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Mean Maximum Drawdown"
           },
           "minimum_maximum_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Minimum Maximum Drawdown"
           },
           "maximum_maximum_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Maximum Drawdown"
           }
         },
@@ -5025,6 +6258,7 @@
           },
           "peak_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Peak Equity"
           },
           "start_time": {
@@ -5051,10 +6285,12 @@
           },
           "absolute_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Absolute Drawdown"
           },
           "percentage_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Percentage Drawdown"
           },
           "duration": {
@@ -5086,14 +6322,17 @@
           },
           "running_peak": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Running Peak"
           },
           "absolute_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Absolute Drawdown"
           },
           "percentage_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Percentage Drawdown"
           }
         },
@@ -5118,10 +6357,12 @@
           },
           "maximum_absolute_drawdown": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Absolute Drawdown"
           },
           "maximum_drawdown_percentage": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Drawdown Percentage"
           },
           "maximum_absolute_drawdown_time": {
@@ -5340,6 +6581,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "source_bar_start": {
@@ -5402,6 +6644,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5413,6 +6656,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5424,6 +6668,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5512,6 +6757,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5525,6 +6771,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5538,6 +6785,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5551,6 +6799,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5593,6 +6842,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -5630,6 +6880,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5680,6 +6931,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6029,6 +7281,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6041,6 +7294,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6053,6 +7307,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6066,6 +7321,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6082,6 +7338,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6186,6 +7443,17 @@
         ],
         "title": "FillRecord"
       },
+      "FinishReason": {
+        "type": "string",
+        "enum": [
+          "stop",
+          "length",
+          "refusal",
+          "content_filter",
+          "other"
+        ],
+        "title": "FinishReason"
+      },
       "FixedDistance": {
         "additionalProperties": false,
         "properties": {
@@ -6202,6 +7470,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6272,6 +7541,7 @@
           },
           "amount": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Amount"
           }
         },
@@ -6286,6 +7556,50 @@
           "amount"
         ],
         "title": "FundReservation"
+      },
+      "GenerationParameters": {
+        "properties": {
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GenerationParameters"
       },
       "GroupMode": {
         "enum": [
@@ -6454,6 +7768,43 @@
         ],
         "title": "HoldoutResultResponse"
       },
+      "ImageMediaType": {
+        "type": "string",
+        "enum": [
+          "image/png",
+          "image/jpeg",
+          "image/webp"
+        ],
+        "title": "ImageMediaType"
+      },
+      "ImageReference": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "image",
+            "title": "Kind",
+            "default": "image"
+          },
+          "asset_id": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Asset Id"
+          },
+          "media_type": {
+            "$ref": "#/components/schemas/ImageMediaType"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "asset_id",
+          "media_type"
+        ],
+        "title": "ImageReference",
+        "description": "Future vision input: caller-owned opaque asset reference, never fetched here.\n\nMIME is a declaration, not byte validation. Upload validation is deferred.\nNo URL, bytes, credentials, download or image interpretation is implemented."
+      },
       "Instrument": {
         "additionalProperties": false,
         "description": "Market-neutral metadata with required Forex conventions when applicable.\n\ninstrument_id is the caller's stable domain identity, not a provider symbol.\ntick_size is in quote currency; quantity_increment and Forex lot_size are in\nbase units. contract_multiplier describes the contract's valuation scale.\nForex pip_size is in quote currency. No sizing or valuation is computed here.\nCurrency labels are uppercase codes, not a registry of recognized currencies.",
@@ -6487,6 +7838,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6499,6 +7851,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6514,6 +7867,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -6542,6 +7896,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -6558,6 +7913,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -6579,6 +7935,166 @@
         ],
         "title": "Instrument",
         "type": "object"
+      },
+      "InterpretationInput": {
+        "additionalProperties": false,
+        "description": "The application assigns identity and an opaque, never fetched source reference.",
+        "properties": {
+          "strategy_text": {
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Strategy Text",
+            "type": "string"
+          },
+          "input_reference": {
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Input Reference",
+            "type": "string"
+          },
+          "strategy_id": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,127}$",
+            "title": "Strategy Id",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "strategy_text",
+          "input_reference",
+          "strategy_id",
+          "version"
+        ],
+        "title": "InterpretationInput",
+        "type": "object"
+      },
+      "InterpretationResult": {
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/InterpretationInput"
+          },
+          "interpretation": {
+            "$ref": "#/components/schemas/StructuredInterpretation"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StrategySpecification"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invocation": {
+            "$ref": "#/components/schemas/InvocationResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "input",
+          "interpretation",
+          "proposal",
+          "invocation"
+        ],
+        "title": "InterpretationResult",
+        "description": "Invocation-scoped, replay-checked audit record, never an approval artifact."
+      },
+      "InterpretationStatus": {
+        "type": "string",
+        "enum": [
+          "READY",
+          "NEEDS_CLARIFICATION"
+        ],
+        "title": "InterpretationStatus"
+      },
+      "InvocationPolicy": {
+        "properties": {
+          "max_attempts": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Attempts",
+            "default": 1
+          },
+          "max_output_tokens": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Max Output Tokens",
+            "default": 4096
+          },
+          "max_total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Total Tokens"
+          },
+          "timeout_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3600000.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Ms"
+          },
+          "retry_delay_ms": {
+            "type": "integer",
+            "maximum": 60000.0,
+            "minimum": 0.0,
+            "title": "Retry Delay Ms",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InvocationPolicy",
+        "description": "Limits are per generate invocation; timeout applies to each attempt."
+      },
+      "InvocationResult": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/LLMRequest"
+          },
+          "response": {
+            "$ref": "#/components/schemas/LLMResponse"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/InvocationPolicy"
+          },
+          "attempts": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Attempts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request",
+          "response",
+          "policy",
+          "attempts"
+        ],
+        "title": "InvocationResult"
       },
       "JournalSession": {
         "properties": {
@@ -6632,10 +8148,12 @@
           },
           "flat_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Flat Equity"
           },
           "running_peak_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Running Peak Equity"
           },
           "risk": {
@@ -6744,6 +8262,7 @@
           },
           "filled_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Filled Quantity"
           },
           "cumulative_costs": {
@@ -6985,6 +8504,107 @@
         ],
         "title": "KernelSnapshot"
       },
+      "LLMRequest": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/ModelIdentity"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Messages"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/PromptProvenance"
+          },
+          "max_output_tokens": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Max Output Tokens"
+          },
+          "parameters": {
+            "$ref": "#/components/schemas/GenerationParameters",
+            "default": {}
+          },
+          "structured_output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StructuredOutput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "messages",
+          "provenance",
+          "max_output_tokens"
+        ],
+        "title": "LLMRequest"
+      },
+      "LLMResponse": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/ModelIdentity"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 4000000,
+            "title": "Text"
+          },
+          "finish_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinishReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TokenUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "^\\S+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "text"
+        ],
+        "title": "LLMResponse"
+      },
       "MLDataset": {
         "additionalProperties": false,
         "properties": {
@@ -7115,6 +8735,7 @@
                   "type": "integer"
                 },
                 {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                   "type": "string"
                 }
               ]
@@ -7181,6 +8802,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7281,6 +8903,7 @@
                   "type": "integer"
                 },
                 {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                   "type": "string"
                 }
               ]
@@ -7294,6 +8917,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7336,6 +8960,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7397,6 +9022,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7468,6 +9094,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7480,6 +9107,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7492,6 +9120,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7504,6 +9133,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7516,6 +9146,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -7669,10 +9300,12 @@
           },
           "bid": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Bid"
           },
           "ask": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Ask"
           }
         },
@@ -7767,7 +9400,8 @@
           "gross_exposure": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -7778,7 +9412,8 @@
           "unrealized_pnl": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -7789,7 +9424,8 @@
           "equity": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -7808,6 +9444,77 @@
           "gross_exposure"
         ],
         "title": "MemberView"
+      },
+      "Message": {
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/MessageRole"
+          },
+          "content": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextContent"
+                },
+                {
+                  "$ref": "#/components/schemas/ImageReference"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "image": "#/components/schemas/ImageReference",
+                  "text": "#/components/schemas/TextContent"
+                }
+              }
+            },
+            "type": "array",
+            "maxItems": 128,
+            "minItems": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "Message"
+      },
+      "MessageRole": {
+        "type": "string",
+        "enum": [
+          "system",
+          "user",
+          "assistant"
+        ],
+        "title": "MessageRole"
+      },
+      "ModelIdentity": {
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Provider Id"
+          },
+          "model_id": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Model Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider_id",
+          "model_id"
+        ],
+        "title": "ModelIdentity"
       },
       "OCOCommand": {
         "properties": {
@@ -7893,7 +9600,8 @@
           "quantity": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -7904,7 +9612,8 @@
           "stop_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -7915,7 +9624,8 @@
           "target_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -8188,10 +9898,12 @@
           },
           "cumulative_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Cumulative Quantity"
           },
           "remaining_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Remaining Quantity"
           },
           "liquidity_policy": {
@@ -8209,6 +9921,7 @@
           },
           "withdrawn_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Withdrawn Quantity"
           }
         },
@@ -8251,10 +9964,12 @@
           },
           "flat_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Flat Equity"
           },
           "running_peak_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Running Peak Equity"
           },
           "risk": {
@@ -8278,7 +9993,8 @@
           "liquidity_per_observation": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -8438,6 +10154,7 @@
           },
           "filled_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Filled Quantity"
           },
           "cumulative_costs": {
@@ -8475,6 +10192,7 @@
           },
           "withdrawn_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Withdrawn Quantity"
           }
         },
@@ -8544,6 +10262,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "order_type": {
@@ -8569,7 +10288,8 @@
           "limit_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -8580,7 +10300,8 @@
           "stop_price": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -8688,10 +10409,12 @@
           },
           "original_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Original Quantity"
           },
           "remaining_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Remaining Quantity"
           },
           "state": {
@@ -8822,14 +10545,17 @@
           },
           "previous_remaining": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Previous Remaining"
           },
           "remaining_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Remaining Quantity"
           },
           "withdrawn_quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Withdrawn Quantity"
           }
         },
@@ -8926,6 +10652,7 @@
           },
           "opening_price": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Opening Price"
           },
           "quote": {
@@ -9314,6 +11041,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "order_type": {
@@ -9495,6 +11223,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -9512,6 +11241,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -9530,6 +11260,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -9734,18 +11465,22 @@
           },
           "initial_capital": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Initial Capital"
           },
           "final_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Final Equity"
           },
           "realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl"
           },
           "unrealized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unrealized Pnl"
           },
           "has_open_position": {
@@ -9848,6 +11583,7 @@
           },
           "total_capital": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total Capital"
           },
           "risk": {
@@ -9974,48 +11710,59 @@
           },
           "allocated_capital": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Allocated Capital"
           },
           "unallocated_capital": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Unallocated Capital"
           },
           "balance": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Balance"
           },
           "available_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Available Funds"
           },
           "reserved_funds": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Reserved Funds"
           },
           "position_collateral": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Position Collateral"
           },
           "realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl"
           },
           "fees_paid": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Fees Paid"
           },
           "reported_unrealized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Reported Unrealized Pnl"
           },
           "reported_equity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Reported Equity"
           },
           "unrealized_pnl": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10026,7 +11773,8 @@
           "equity": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10037,7 +11785,8 @@
           "net_pnl": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10048,7 +11797,8 @@
           "gross_exposure": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10058,6 +11808,7 @@
           },
           "encumbered": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Encumbered"
           },
           "risk_breaches": {
@@ -10105,6 +11856,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10127,6 +11879,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10139,6 +11892,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10259,6 +12013,45 @@
         ],
         "title": "PriceType",
         "type": "string"
+      },
+      "PromptProvenance": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Prompt Id"
+          },
+          "prompt_version": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Prompt Version"
+          },
+          "input_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "^\\S+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Reference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "prompt_version"
+        ],
+        "title": "PromptProvenance"
       },
       "Provenance": {
         "additionalProperties": false,
@@ -10666,7 +12459,8 @@
           "period_return": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10687,10 +12481,12 @@
         "properties": {
           "absolute_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Absolute Return"
           },
           "cumulative_return": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Cumulative Return"
           },
           "series": {
@@ -10708,7 +12504,8 @@
           "mean_period_return": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10719,7 +12516,8 @@
           "return_volatility": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10730,7 +12528,8 @@
           "period_sharpe": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10741,7 +12540,8 @@
           "annualized_sharpe": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -10776,10 +12576,12 @@
         "properties": {
           "maximum_encumbered": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Encumbered"
           },
           "maximum_gross_exposure": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Maximum Gross Exposure"
           }
         },
@@ -10803,6 +12605,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -10819,6 +12622,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -10836,6 +12640,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -10852,6 +12657,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -10869,6 +12675,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               },
               {
@@ -10906,6 +12713,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10918,6 +12726,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10929,6 +12738,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10941,6 +12751,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -10956,6 +12767,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -11113,6 +12925,7 @@
                 "type": "integer"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -11962,6 +13775,7 @@
           },
           "net_realized_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Net Realized Pnl"
           },
           "lifecycle": {
@@ -12102,6 +13916,41 @@
         "title": "SignalTiming",
         "type": "string"
       },
+      "SourceEvidence": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "instruments",
+              "timeframe",
+              "direction",
+              "long",
+              "short",
+              "session",
+              "features",
+              "parameters",
+              "stop_loss",
+              "take_profit",
+              "sizing_reference"
+            ],
+            "title": "Field"
+          },
+          "quote": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Quote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "quote"
+        ],
+        "title": "SourceEvidence",
+        "description": "Review aid, not proof of semantic equivalence or of human approval."
+      },
       "StaleFeedPolicy": {
         "properties": {
           "schema_version": {
@@ -12199,6 +14048,7 @@
           },
           "stop_price": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Stop Price"
           },
           "side": {
@@ -12596,6 +14446,187 @@
         ],
         "title": "StrategyDecision"
       },
+      "StrategyDraft": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "instruments": {
+            "items": {
+              "type": "string",
+              "maxLength": 512,
+              "minLength": 1,
+              "pattern": "^\\S+$"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Instruments"
+          },
+          "timeframe": {
+            "$ref": "#/components/schemas/Timeframe"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "long": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "short": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/FeatureReference"
+            },
+            "type": "array",
+            "maxItems": 64,
+            "title": "Features"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/Parameter"
+            },
+            "type": "array",
+            "maxItems": 64,
+            "title": "Parameters"
+          },
+          "stop_loss": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FixedDistance"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FeatureDistance"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "feature": "#/components/schemas/FeatureDistance",
+                    "fixed": "#/components/schemas/FixedDistance"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Loss"
+          },
+          "take_profit": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/FixedDistance"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FeatureDistance"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RiskRewardTarget"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "feature": "#/components/schemas/FeatureDistance",
+                    "fixed": "#/components/schemas/FixedDistance",
+                    "risk_reward": "#/components/schemas/RiskRewardTarget"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Take Profit"
+          },
+          "sizing_reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 1,
+                "pattern": "^\\S+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sizing Reference"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/TimingIntent",
+            "default": {
+              "signal": "bar_close",
+              "execution": "next_bar_open"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "instruments",
+          "timeframe",
+          "direction",
+          "long",
+          "short",
+          "session",
+          "features",
+          "parameters",
+          "stop_loss",
+          "take_profit",
+          "sizing_reference"
+        ],
+        "title": "StrategyDraft",
+        "description": "Only intent, never identity/provenance/approval; nested types are Phase 5's.\n\nNullable fields are required on the wire: omission is not an implicit decision.\nTiming is the documented Phase 5 bar-close/next-open default."
+      },
       "StrategyOrderSnapshot": {
         "properties": {
           "admission": {
@@ -12699,6 +14730,7 @@
           },
           "quantity": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Quantity"
           },
           "risk": {
@@ -12855,6 +14887,95 @@
         "title": "StrategyValidationResult",
         "description": "Result of deterministic StrategyContent validation."
       },
+      "StructuredInterpretation": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InterpretationStatus"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StrategyDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clarifications": {
+            "items": {
+              "$ref": "#/components/schemas/Clarification"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Clarifications"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SourceEvidence"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "draft",
+          "clarifications",
+          "evidence"
+        ],
+        "title": "StructuredInterpretation"
+      },
+      "StructuredOutput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "title": "Name"
+          },
+          "json_schema": {
+            "type": "string",
+            "maxLength": 1000000,
+            "minLength": 2,
+            "title": "Json Schema"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "json_schema"
+        ],
+        "title": "StructuredOutput",
+        "description": "Immutable neutral schema text; adapters translate it to their wire format."
+      },
+      "TextContent": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "text",
+            "title": "Kind",
+            "default": "text"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 1000000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TextContent"
+      },
       "Timeframe": {
         "description": "Initial bar labels, not fixed-duration or trading-calendar calculations.",
         "enum": [
@@ -12884,6 +15005,50 @@
         },
         "title": "TimingIntent",
         "type": "object"
+      },
+      "TokenUsage": {
+        "properties": {
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Tokens"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TokenUsage",
+        "description": "Reported values only; unknown counts remain None, including total."
       },
       "TradeHistoryPage": {
         "properties": {
@@ -12928,14 +15093,17 @@
           },
           "realized_pnl_delta": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Realized Pnl Delta"
           },
           "fees_delta": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Fees Delta"
           },
           "net_realized_pnl_delta": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Net Realized Pnl Delta"
           }
         },
@@ -12976,7 +15144,8 @@
           "win_rate": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -12987,7 +15156,8 @@
           "loss_rate": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -12997,20 +15167,24 @@
           },
           "gross_profit": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Gross Profit"
           },
           "gross_loss": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Gross Loss"
           },
           "net_closed_trade_pnl": {
             "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Net Closed Trade Pnl"
           },
           "average_trade": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13021,7 +15195,8 @@
           "average_winner": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13032,7 +15207,8 @@
           "average_loser": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13043,7 +15219,8 @@
           "largest_winner": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13054,7 +15231,8 @@
           "largest_loser": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13065,7 +15243,8 @@
           "profit_factor": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
               },
               {
                 "type": "null"
@@ -13491,23 +15670,29 @@
         "title": "WorkflowBinding",
         "description": "Trusted application context, never an MCP-submittable approval claim."
       },
-      "JsonValue": {},
-      "StrategyValidationRequest": {
+      "AIInput": {
         "additionalProperties": false,
-        "description": "Raw JSON-compatible strategy content submitted for validation.",
         "properties": {
-          "content": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
-            "title": "Content",
-            "type": "object"
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/InterpretationInput"
+          },
+          "external_transmission_approved": {
+            "const": true,
+            "title": "External Transmission Approved",
+            "type": "boolean"
           }
         },
         "required": [
-          "content"
+          "idempotency_key",
+          "input",
+          "external_transmission_approved"
         ],
-        "title": "StrategyValidationRequest",
+        "title": "AIInput",
         "type": "object"
       },
       "BacktestOperation": {
@@ -13669,6 +15854,68 @@
           "kind"
         ],
         "title": "HoldoutOperation",
+        "type": "object"
+      },
+      "OperationSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "operation": {
+            "discriminator": {
+              "mapping": {
+                "backtest": "#/components/schemas/BacktestOperation",
+                "holdout": "#/components/schemas/HoldoutOperation",
+                "ml_dataset": "#/components/schemas/DatasetOperation",
+                "ml_prediction": "#/components/schemas/PredictionOperation",
+                "ml_prediction_features": "#/components/schemas/PredictionFeaturesOperation",
+                "ml_training": "#/components/schemas/TrainingOperation",
+                "performance": "#/components/schemas/PerformanceOperation",
+                "robustness": "#/components/schemas/RobustnessOperation",
+                "walk_forward": "#/components/schemas/WalkForwardOperation"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BacktestOperation"
+              },
+              {
+                "$ref": "#/components/schemas/HoldoutOperation"
+              },
+              {
+                "$ref": "#/components/schemas/WalkForwardOperation"
+              },
+              {
+                "$ref": "#/components/schemas/RobustnessOperation"
+              },
+              {
+                "$ref": "#/components/schemas/DatasetOperation"
+              },
+              {
+                "$ref": "#/components/schemas/TrainingOperation"
+              },
+              {
+                "$ref": "#/components/schemas/PredictionOperation"
+              },
+              {
+                "$ref": "#/components/schemas/PredictionFeaturesOperation"
+              },
+              {
+                "$ref": "#/components/schemas/PerformanceOperation"
+              }
+            ],
+            "title": "Operation"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "operation"
+        ],
+        "title": "OperationSubmission",
         "type": "object"
       },
       "PerformanceOperation": {
@@ -13922,66 +16169,44 @@
         "title": "WalkForwardOperation",
         "type": "object"
       },
-      "OperationSubmission": {
+      "AIResearchSubmission": {
         "additionalProperties": false,
         "properties": {
-          "idempotency_key": {
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
-            "title": "Idempotency Key",
+          "interpretation_job_id": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Interpretation Job Id",
             "type": "string"
           },
-          "operation": {
-            "discriminator": {
-              "mapping": {
-                "backtest": "#/components/schemas/BacktestOperation",
-                "holdout": "#/components/schemas/HoldoutOperation",
-                "ml_dataset": "#/components/schemas/DatasetOperation",
-                "ml_prediction": "#/components/schemas/PredictionOperation",
-                "ml_prediction_features": "#/components/schemas/PredictionFeaturesOperation",
-                "ml_training": "#/components/schemas/TrainingOperation",
-                "performance": "#/components/schemas/PerformanceOperation",
-                "robustness": "#/components/schemas/RobustnessOperation",
-                "walk_forward": "#/components/schemas/WalkForwardOperation"
-              },
-              "propertyName": "kind"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/BacktestOperation"
-              },
-              {
-                "$ref": "#/components/schemas/HoldoutOperation"
-              },
-              {
-                "$ref": "#/components/schemas/WalkForwardOperation"
-              },
-              {
-                "$ref": "#/components/schemas/RobustnessOperation"
-              },
-              {
-                "$ref": "#/components/schemas/DatasetOperation"
-              },
-              {
-                "$ref": "#/components/schemas/TrainingOperation"
-              },
-              {
-                "$ref": "#/components/schemas/PredictionOperation"
-              },
-              {
-                "$ref": "#/components/schemas/PredictionFeaturesOperation"
-              },
-              {
-                "$ref": "#/components/schemas/PerformanceOperation"
-              }
-            ],
-            "title": "Operation"
+          "submission": {
+            "$ref": "#/components/schemas/OperationSubmission"
           }
         },
         "required": [
-          "idempotency_key",
-          "operation"
+          "interpretation_job_id",
+          "submission"
         ],
-        "title": "OperationSubmission",
+        "title": "AIResearchSubmission",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "StrategyValidationRequest": {
+        "additionalProperties": false,
+        "description": "Raw JSON-compatible strategy content submitted for validation.",
+        "properties": {
+          "content": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Content",
+            "type": "object"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "StrategyValidationRequest",
         "type": "object"
       },
       "JournalQuery": {

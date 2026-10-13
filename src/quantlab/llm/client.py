@@ -14,6 +14,7 @@ from .models import (
     ProviderInfo, TextContent,
 )
 from .provider import LLMProvider
+from .cloud import CloudError
 
 RetryDelay = Callable[[int], Awaitable[None]]
 
@@ -108,6 +109,8 @@ class LLMClient:
                 raise ResponseCompatibilityError() from None
             except UnsupportedCapabilityError:
                 raise UnsupportedCapabilityError() from None
+            except CloudError as error:
+                raise CloudError(error.code) from None
             except Exception:
                 # Cancellation (BaseException) intentionally propagates unchanged.
                 raise ProviderError() from None

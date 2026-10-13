@@ -20,15 +20,17 @@ from .routes import router
 from .schemas import ErrorResponse, Health
 from .security import BoundaryMiddleware, require_reader, logger
 from .services import ServiceLane, default_services
+from .ai import AIJobs
 
 
-def create_app(settings: APISettings | None = None, *, services_factory=None) -> FastAPI:
+def create_app(settings: APISettings | None = None, *, services_factory=None, ai_factory=None) -> FastAPI:
     settings = APISettings.from_env() if settings is None else APISettings.model_validate(settings)
 
     @asynccontextmanager
     async def lifespan(app):
         lane = ServiceLane()
         app.state.lane, app.state.ready = lane, False
+        app.state.ai = AIJobs(settings.cloud) if ai_factory is None else ai_factory()
         try:
             try:
                 await lane.start(lambda: (default_services(settings) if services_factory is None else services_factory()))
@@ -41,7 +43,10 @@ def create_app(settings: APISettings | None = None, *, services_factory=None) ->
         finally:
             app.state.ready = False
             try:
-                await lane.close()
+                try:
+                    await app.state.ai.close()
+                finally:
+                    await lane.close()
             except Exception:
                 logger.error('{"event":"shutdown_failed"}')
                 raise RuntimeError("API shutdown failed; trusted local recovery may be required.") from None

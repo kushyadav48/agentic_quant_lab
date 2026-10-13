@@ -526,3 +526,10 @@ the audit adds no new deliverable file. No core service was edited. With the thr
 findings corrected and the targeted/dependency/whitespace checks passing, Phase 21
 is ready for a user-controlled commit within its documented bounded scope.
 Nothing was staged, committed or pushed.
+## Phase 23 integration update
+
+Seven authenticated cloud-research routes now extend the Phase 21 API while its
+existing quant service lane, reader/operator authority and financial restrictions
+remain in force. See [cloud-llm.md](cloud-llm.md) for current route contracts and
+[phase23-report.md](phase23-report.md) for verification and pending live acceptance.
+The original Phase 21 scope and evidence below remain historical baseline records.

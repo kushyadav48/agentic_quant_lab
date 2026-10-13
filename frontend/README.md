@@ -1,5 +1,16 @@
 # Quant Lab research console · Phase 22
 
+Phase 23 adds a connected Research panel for server-side Gemini interpretation.
+Check cloud configuration, explicitly select/consent to non-sensitive text,
+submit a stable AI identity, and separately execute it. Inspect the verified draft
+or clarification artifact. Review/approval stays in trusted Python; the optional
+AI job binding links an independently approved exact backtest request to that
+proposal. All nine ordinary research kinds remain available. Readers can inspect
+configuration/jobs/results but cannot submit or execute. Synthetic Demo remains
+isolated and exposes no cloud controls. See
+[cloud configuration, routes and review instructions](../docs/cloud-llm.md).
+Never put a Gemini key in this frontend or a `VITE_` environment variable.
+
 Local React + TypeScript + Vite workspace. Python owns quantitative results,
 approval, risk, accounting, operation identities and immutable history.
 

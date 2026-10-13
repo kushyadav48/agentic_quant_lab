@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from quantlab.llm.cloud import CloudSettings
 
 
 class APISettings(BaseModel):
@@ -17,6 +18,7 @@ class APISettings(BaseModel):
     max_request_bytes: int = Field(default=1_048_576, ge=1024, le=1_048_576)
     max_concurrent_requests: int = Field(default=16, ge=1, le=64)
     port: int = Field(default=8000, ge=1024, le=65535)
+    cloud: CloudSettings = Field(default_factory=CloudSettings, repr=False)
 
     @model_validator(mode="after")
     def safe_local_configuration(self):
@@ -44,6 +46,7 @@ class APISettings(BaseModel):
                 if os.environ.get("QUANTLAB_API_JOURNAL_PATH") else None,
                 cors_origins=tuple(filter(None, os.environ.get("QUANTLAB_API_CORS_ORIGINS", "").split(","))),
                 port=int(os.environ.get("QUANTLAB_API_PORT", "8000")),
+                cloud=CloudSettings.from_env(),
             )
         except (KeyError, ValueError):
             raise RuntimeError("Invalid API configuration; set a valid operator credential and local settings.") from None

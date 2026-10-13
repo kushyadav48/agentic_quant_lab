@@ -10,7 +10,8 @@ def test_openapi_routes_auth_errors_discriminators_and_resolved_refs():
         response = c.get("/openapi.json", headers=AUTH)
         assert response.status_code == 200
         schema = response.json()
-    assert schema["openapi"].startswith("3.1") and len(schema["paths"]) == 14
+    assert schema["openapi"].startswith("3.1") and len(schema["paths"]) == 21
+    assert "/api/v1/ai/interpretations/{job_id}/execute" in schema["paths"]
     paths, definitions = schema["paths"], schema["components"]["schemas"]
     assert paths[OPS]["post"]["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith("/OperationSubmission")
     assert definitions["OperationSubmission"]["properties"]["operation"]["discriminator"]["propertyName"] == "kind"

@@ -3,6 +3,20 @@ from .schemas import ErrorResponse
 
 
 MESSAGES = {
+    "cloud_disabled": "Cloud inference is disabled by the server operator.",
+    "unsupported_provider": "This cloud provider is unsupported or disallowed.",
+    "free_policy_rejected": "Current free-tier model and billing verification is required.",
+    "credentials_missing": "Server-side Gemini credentials are missing.",
+    "credentials_invalid": "The provider rejected server-side credentials.",
+    "cloud_busy": "The single cloud inference slot is busy.",
+    "cloud_input_rejected": "Cloud input exceeds policy or contains protected content.",
+    "budget_exhausted": "The process-session cloud request budget is exhausted.",
+    "quota_exhausted": "The provider quota is exhausted; no fallback is permitted.",
+    "rate_limited": "The provider rate limit was reached; no automatic retry occurs.",
+    "provider_timeout": "The cloud request timed out.",
+    "provider_unavailable": "The cloud provider or its optional SDK is unavailable.",
+    "invalid_model_response": "The provider output failed complete structured validation.",
+    "research_validation_rejected": "Deterministic research validation rejected the proposal or binding.",
     "unauthenticated": "A valid bearer credential is required.",
     "forbidden": "Trusted operator authority is required.",
     "invalid_request": "Input violates the API contract.",

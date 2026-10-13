@@ -4,6 +4,7 @@ import { Badge, Empty, ErrorNotice, Facts, JSONDetails, Panel } from '../compone
 import { utc } from '../format';
 import { RecordChart, type RecordPoint } from '../RecordChart';
 import { chartPoint } from '../debugger/data';
+import { AIResearch } from './AIResearch';
 
 export function Research({ api, capabilities, operations, retain, selected, select, showResult, initialInput }: {
   api: APIClient; capabilities: Capabilities; operations: Operation[]; retain: (operation: Operation) => void;
@@ -16,6 +17,7 @@ export function Research({ api, capabilities, operations, retain, selected, sele
   const [lookup, setLookup] = useState('');
   const [error, setError] = useState<unknown>();
   const [pending, setPending] = useState(false);
+  const [aiJob, setAIJob] = useState('');
   async function action(work: () => Promise<Operation>) {
     setError(undefined); setPending(true);
     try { const value = await work(); retain(value); select(value.operation_id); }
@@ -27,13 +29,15 @@ export function Research({ api, capabilities, operations, retain, selected, sele
       if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(key)) throw new Error('Idempotency key must be 1–64 letters, digits, underscores or hyphens, starting with a letter or digit.');
       const body = parseObject(input);
       if ('kind' in body) throw new Error('The operation kind is supplied by the selector. Remove kind from the input object.');
-      return api.submit({ idempotency_key: key, operation: { ...body, kind } } as Submission);
+      const submission = { idempotency_key: key, operation: { ...body, kind } } as Submission;
+      return aiJob ? api.aiResearch(aiJob, submission) : api.submit(submission);
     });
   }
   return <>
     <div className="page-heading"><div><span className="eyebrow">Deterministic operations</span><h1>Research workbench</h1><p>One request, a traceable identity, an explicit execution step.</p></div><Badge>{api.role.toUpperCase()}</Badge></div>
     <div className="notice warning">{api.source === 'demo' ? 'Synthetic recorded artifacts only. Submission, execution and cancellation are disabled. Select a completed fixture to inspect its original digest and results; no research runs in this demo.' : <>Process-local operations · maximum {capabilities.maximum_operations} identities. Submission queues metadata only. Execute runs synchronously in the service lane. No automatic worker or durable job store. Running work cannot be cancelled.</>}</div>
     <div className="workspace-stats"><span><b>{capabilities.research_kinds.length}</b> supported research kinds</span><span><b>{operations.length}</b> inspected identities</span><span><b>{operations.filter(operation => operation.state === 'completed').length}</b> completed artifacts</span><span><b>{api.source === 'demo' ? 'FIXED' : 'EXPLICIT'}</b> execution policy</span></div>
+    {api.source === 'api' && <><AIResearch api={api} useJob={setAIJob} /><label>AI interpretation job binding (optional; backtest only)<input value={aiJob} maxLength={64} onChange={e => setAIJob(e.target.value)} /></label><p className="muted">Supply your independently approved exact strategy, selected local bars, features, capital and risk configuration in the existing research request below. Market data is never sent to Gemini.</p></>}
     <div className="two-col research-layout"><Panel title={api.source === 'demo' ? 'Recorded example request · read only execution' : 'Submit operation'}><label>Operation<select value={kind} onChange={e => setKind(e.target.value as typeof kind)}>{capabilities.research_kinds.map(value => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></label>
       <label>Idempotency key<input value={key} maxLength={64} onChange={e => setKey(e.target.value)} placeholder="experiment-001" autoComplete="off" /></label>
       <label>Strict operation inputs · JSON<textarea className="code-editor" maxLength={1048576} value={input} onChange={e => setInput(e.target.value)} spellCheck={false} /></label>

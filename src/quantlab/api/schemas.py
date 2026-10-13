@@ -51,7 +51,7 @@ class Capabilities(HTTPModel):
     journal: bool
     unsupported: tuple[str, ...] = (
         "strategy_approval", "paper_commands", "paper_recovery", "live_execution",
-        "background_workers", "durable_jobs", "llm_interpretation", "dataset_download",
+        "background_workers", "durable_jobs", "cloud_multimodal", "dataset_download",
         "journal_writes", "portfolio_mutations",
     )
 

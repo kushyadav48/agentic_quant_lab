@@ -1,5 +1,37 @@
 # Architecture
 
+## Phase 23 cloud research integration
+
+`quantlab.llm.gemini.GeminiProvider` implements the existing async provider protocol
+using the official optional Google Gen AI SDK. `CloudSettings` and a locked
+`CloudBudget` enforce disabled defaults, provider/model allowlists, expiring trusted
+free-tier/billing attestations, bounded tokens/bytes/time, one inference slot and
+conservative count+generate request reservations. An explicitly owned HTTPX async transport disables connection retries and prevents
+an installed optional aiohttp package from selecting the SDK's implicit retry/logging
+path. No tools or fallback are enabled. The existing Phase 14 strict interpretation/evidence/vocabulary conversion
+owns the unapproved strategy proposal and full invocation provenance.
+
+FastAPI owns a bounded process-local `AIJobs` namespace on its event loop. Explicit
+execute awaits asynchronous SDK I/O, shielded from client disconnect. Metadata reads
+stay small; quant work, SQLite and result serialization retain the separate service
+thread. Reader/operator boundaries apply to all seven added HTTP routes. An explicit
+AI-bound backtest submission requires an independently approved strategy matching
+the original proposal ID/version/content digest. Existing `ResearchOperations` owns
+submission/execution/results; `WorkflowBinding.thread_digest` retains the AI job ID.
+The existing journal can ingest that snapshot explicitly on its owning thread.
+No financial engine, approval or mutable paper/portfolio authority is added.
+
+The React Research panel uses generated actual OpenAPI contracts, a safe provider
+status, selected-input consent, separate submission/execution, terminal failures,
+and canonical artifact digest verification. The synthetic adapter rejects cloud
+calls before fetch. All nine existing deterministic kinds remain supported. AI
+artifacts/budgets are process-local; journal ingestion and approval stay explicit.
+See [cloud-llm.md](cloud-llm.md) and [phase23-report.md](phase23-report.md).
+Implementation is present; the user-supplied real Gemini smoke and focused final
+acceptance audit passed. Full browser/provider research workflow verification is
+a separate pending manual check. Phase 24 and release acceptance remain outside
+this increment. See [phase23-acceptance-audit.md](phase23-acceptance-audit.md).
+
 ## Implemented Phase 22 dashboard
 
 The isolated `frontend/` workspace uses React, strict TypeScript and Vite, with
@@ -52,8 +84,8 @@ truncate display while allowing complete downloads.
 
 Supported/unsupported workflows, startup, exact tests/builds, dependency choices,
 CPU measurements and browser QA limitations are in [phase22-report.md](phase22-report.md)
-and [the frontend README](../frontend/README.md). Approval, image upload/provider
-inference, paper commands/recovery, account/portfolio mutations, journal writes,
+and [the frontend README](../frontend/README.md). Approval, cloud image uploads,
+paper commands/recovery, account/portfolio mutations, journal writes,
 durable/background jobs and live trading remain unavailable through HTTP.
 
 ## Implemented Phase 21 HTTP application
@@ -105,7 +137,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; bounded Phase 21 local HTTP research/reporting is implemented; the bounded Phase 22 dashboard is implemented; broader execution and Phase 23+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; bounded Phase 21 local HTTP research/reporting is implemented; the bounded Phase 22 dashboard is implemented; Phase 23 adds bounded cloud research with a passed user-supplied real smoke and focused final audit; manual browser workflow verification remains pending; broader execution and Phases 24–25 remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 

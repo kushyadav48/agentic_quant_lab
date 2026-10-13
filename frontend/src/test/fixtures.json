@@ -29,7 +29,7 @@
       "live_execution",
       "background_workers",
       "durable_jobs",
-      "llm_interpretation",
+      "cloud_multimodal",
       "dataset_download",
       "journal_writes",
       "portfolio_mutations"

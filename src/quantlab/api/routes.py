@@ -16,9 +16,62 @@ from .schemas import (
 )
 from .security import require_operator, require_reader, logger
 import json
+from .ai import AIConfiguration, AIInput, AIStatus, AIResult, AIResearchSubmission
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_reader)])
 OperationID = Annotated[str, Path(pattern="^[0-9a-f]{64}$", min_length=64, max_length=64)]
+
+
+@router.get("/ai/configuration", response_model=AIConfiguration)
+async def ai_configuration(request: Request):
+    get_lane(request)
+    return request.app.state.ai.configuration()
+
+
+@router.post("/ai/interpretations", response_model=AIStatus, status_code=201,
+    dependencies=[Depends(require_operator)], openapi_extra=request_schema(AIInput))
+async def ai_submit(request: Request, item: AIInput = Depends(body_contract(AIInput))):
+    return request.app.state.ai.submit(item)
+
+
+@router.get("/ai/interpretations/{job_id}", response_model=AIStatus)
+async def ai_status(request: Request, job_id: OperationID):
+    get_lane(request)
+    return request.app.state.ai.get(job_id)
+
+
+@router.post("/ai/interpretations/{job_id}/execute", response_model=AIStatus,
+    dependencies=[Depends(require_operator)])
+async def ai_execute(request: Request, job_id: OperationID):
+    get_lane(request)
+    return await request.app.state.ai.execute(job_id)
+
+
+@router.post("/ai/interpretations/{job_id}/cancel", response_model=AIStatus,
+    dependencies=[Depends(require_operator)])
+async def ai_cancel(request: Request, job_id: OperationID):
+    get_lane(request)
+    return request.app.state.ai.cancel(job_id)
+
+
+@router.get("/ai/interpretations/{job_id}/result", response_model=AIResult)
+async def ai_result(request: Request, job_id: OperationID):
+    lane = get_lane(request)
+    wire = request.app.state.ai.results.get(job_id)
+    request.app.state.ai.get(job_id)
+    if wire is None:
+        raise APIError(409, "result_unavailable")
+    return await lane.call(lambda: wire_response(request.app.state.ai.result(job_id)))
+
+
+@router.post("/ai/research/operations", response_model=OperationStatus, status_code=201,
+    dependencies=[Depends(require_operator)], openapi_extra=request_schema(AIResearchSubmission))
+async def ai_research(request: Request, item: AIResearchSubmission = Depends(body_contract(AIResearchSubmission))):
+    lane = get_lane(request)
+    def submit_bound():
+        binding = request.app.state.ai.bind_research(item)
+        return OperationStatus.from_snapshot(lane.services.operations.submit(item.submission, workflow=binding))
+    return await lane.call(submit_bound)
 
 
 @router.get("/ready", response_model=Health)
