@@ -83,3 +83,8 @@ pip-wheel-metadata/
 *.temp
 *.bak
 *~
+
+# Phase 22 frontend
+node_modules/
+frontend/coverage/
+frontend/.npm-cache/

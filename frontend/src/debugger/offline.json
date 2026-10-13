@@ -1,0 +1,1446 @@
+{
+  "source": "OFFLINE DEMO \u2014 deterministic Python test services; never live or connected account data",
+  "paper": {
+    "operator_required": false,
+    "snapshot": {
+      "account": {
+        "available_funds": "798",
+        "balance": "1000",
+        "config": {
+          "account_id": "account:a",
+          "denomination": "USD",
+          "instrument": {
+            "asset_class": "equity",
+            "base_currency": null,
+            "calendar": {
+              "calendar_id": "fixture",
+              "timezone": "UTC"
+            },
+            "contract_multiplier": "1",
+            "instrument_id": "research:TEST",
+            "lot_size": null,
+            "pip_size": null,
+            "quantity_increment": "1",
+            "quote_currency": "USD",
+            "symbol": "TEST",
+            "tick_size": "0.01"
+          },
+          "policy": "prefunded-linear-equity-pnl-v1",
+          "starting_capital": "1000",
+          "timestamp": "2026-01-01T00:10:00+00:00"
+        },
+        "equity": "1000",
+        "event_sequence": 2,
+        "fees_paid": "0",
+        "last_event_id": "77369350891f15aacf574bb657696411d89302b971c9a309b4ea3322e1d066bc",
+        "last_input_sequence": 2,
+        "position": {
+          "account_id": "account:a",
+          "cost_basis": "202",
+          "direction": "long",
+          "entry_basis": "101",
+          "entry_time": "2026-01-01T00:11:00+00:00",
+          "entry_transaction_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+          "fees_paid": "0",
+          "instrument": {
+            "asset_class": "equity",
+            "base_currency": null,
+            "calendar": {
+              "calendar_id": "fixture",
+              "timezone": "UTC"
+            },
+            "contract_multiplier": "1",
+            "instrument_id": "research:TEST",
+            "lot_size": null,
+            "pip_size": null,
+            "quantity_increment": "1",
+            "quote_currency": "USD",
+            "symbol": "TEST",
+            "tick_size": "0.01"
+          },
+          "quantity": "2",
+          "realized_pnl": "0",
+          "strategy_id": "a",
+          "unrealized_pnl": "0",
+          "valuation": {
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+            "kind": "market",
+            "quote": {
+              "ask": "101",
+              "available_at": "2026-01-01T00:11:00+00:00",
+              "bid": "101",
+              "dataset_id": "fixture",
+              "instrument_id": "research:TEST",
+              "source_id": "synthetic",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "sequence": 5,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          }
+        },
+        "position_collateral": "202",
+        "realized_pnl": "0",
+        "reservations": [],
+        "reserved_funds": "0",
+        "running_peak_equity": "1000",
+        "state_version": 2,
+        "timestamp": "2026-01-01T00:11:00+00:00",
+        "unrealized_pnl": "0"
+      },
+      "clock": {
+        "sequence": 5,
+        "timestamp": "2026-01-01T00:11:00+00:00"
+      },
+      "config": {
+        "maximum_inputs": 1000,
+        "schema_version": 1,
+        "sources": [
+          {
+            "classification": "synthetic-declared-openings",
+            "dataset_id": "fixture",
+            "source_id": "synthetic",
+            "source_reference": "synthetic:declared-opening-feed",
+            "version_digest": "7fc62e73b7e3c43696409fa8703fd4ddcb069c19a2c802fa466856d349f5c565"
+          }
+        ],
+        "stale": {
+          "maximum_age": "PT600S",
+          "policy_id": "age",
+          "schema_version": 1,
+          "version": 1
+        },
+        "stop_policy": "cancel-pending-non-liquidating-v1",
+        "strategy": {
+          "account": {
+            "account_id": "account:a",
+            "denomination": "USD",
+            "instrument": {
+              "asset_class": "equity",
+              "base_currency": null,
+              "calendar": {
+                "calendar_id": "fixture",
+                "timezone": "UTC"
+              },
+              "contract_multiplier": "1",
+              "instrument_id": "research:TEST",
+              "lot_size": null,
+              "pip_size": null,
+              "quantity_increment": "1",
+              "quote_currency": "USD",
+              "symbol": "TEST",
+              "tick_size": "0.01"
+            },
+            "policy": "prefunded-linear-equity-pnl-v1",
+            "starting_capital": "1000",
+            "timestamp": "2026-01-01T00:10:00+00:00"
+          },
+          "costs": {
+            "commission_per_unit": "0",
+            "fixed_fee_per_fill": "0",
+            "slippage": "0",
+            "spread": "0"
+          },
+          "maximum_events": 5000,
+          "price_type": "mid",
+          "quantity": "2",
+          "risk": {
+            "max_drawdown_fraction": null,
+            "max_equity_fraction": null,
+            "max_notional_exposure": null,
+            "max_position_quantity": null,
+            "minimum_equity": null
+          },
+          "schema_version": 1,
+          "session_id": "session:a",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timeframe": "1m",
+          "timestamp": "2026-01-01T00:10:00+00:00"
+        },
+        "version": 1
+      },
+      "execution": {
+        "admission": {
+          "account_id": "account:a",
+          "admitted": true,
+          "causation_id": "efc7b5da1a2d0daa911588dbe8ae54399bdfa35a6812ca55e8c1bd3d85745f7c",
+          "config_digest": "877e421c63932b4bc8043892ef9705d8cece2fd5173bb2702b5ffd2b0cccb01c",
+          "evidence": [
+            {
+              "evidence_id": "9eaa711632343bfebaa25d598ec27183a700f221637eebc22c4358679a32e3dd",
+              "result_digest": "b2d5d716e9065ce19071a942ca53a142f040c3ec9abc32a9fa3b0b84fd802f99"
+            },
+            {
+              "evidence_id": "d4daa550f810c568a9669769dd6351f6b99699679824b1e508549d6499f6306c",
+              "result_digest": "efd5c3ede00e892a9e8baaf41dc177a8d093812a0603878862f441e67cf21ce7"
+            },
+            {
+              "evidence_id": "d399b5a530380d076422f5a1592df9361ab19df89eedc9a23ee66f3d9340a797",
+              "result_digest": "a49a920dc24f55c1f0e8f64212dd278fa8ee250ac111c20f4edf0f8184a0170f"
+            }
+          ],
+          "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+          "reason": "admitted",
+          "record_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+          "schema_version": 1,
+          "sequence": 0,
+          "session_id": "session:a",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timestamp": "2026-01-01T00:10:00+00:00"
+        },
+        "decision": {
+          "account_id": "account:a",
+          "admission_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+          "causation_id": "bar-close-0",
+          "dependencies": [
+            "bar-close-0"
+          ],
+          "features": [],
+          "long": "true",
+          "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+          "reason": "entry_signal",
+          "record_id": "0c8b30f81c22edb4c157f1d492d07424c7ca5a04868784efaa0bb9a07eb74ef4",
+          "schema_version": 1,
+          "sequence": 2,
+          "session_id": "session:a",
+          "short": null,
+          "side": "buy",
+          "source_bar_end": "2026-01-01T00:11:00+00:00",
+          "source_bar_start": "2026-01-01T00:10:00+00:00",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timestamp": "2026-01-01T00:11:00+00:00"
+        },
+        "intent": {
+          "account_id": "account:a",
+          "admission_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+          "causation_id": "bar-close-0",
+          "decision_id": "0c8b30f81c22edb4c157f1d492d07424c7ca5a04868784efaa0bb9a07eb74ef4",
+          "execution_policy": "explicit-locked-next-open-v1",
+          "instrument_id": "research:TEST",
+          "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+          "quantity": "2",
+          "reason": "entry_signal",
+          "record_id": "bc6f52ae6bd97e2ee4115b6c1650966cbec73b06e3abdd142c3f271c4b802c0a",
+          "schema_version": 1,
+          "sequence": 2,
+          "session_id": "session:a",
+          "side": "buy",
+          "source_bar_end": "2026-01-01T00:11:00+00:00",
+          "source_bar_start": "2026-01-01T00:10:00+00:00",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timestamp": "2026-01-01T00:11:00+00:00"
+        },
+        "kernel": {
+          "config": {
+            "costs": {
+              "commission_per_unit": "0",
+              "fixed_fee_per_fill": "0",
+              "slippage": "0",
+              "spread": "0"
+            },
+            "flat_equity": "1000",
+            "instrument": {
+              "asset_class": "equity",
+              "base_currency": null,
+              "calendar": {
+                "calendar_id": "fixture",
+                "timezone": "UTC"
+              },
+              "contract_multiplier": "1",
+              "instrument_id": "research:TEST",
+              "lot_size": null,
+              "pip_size": null,
+              "quantity_increment": "1",
+              "quote_currency": "USD",
+              "symbol": "TEST",
+              "tick_size": "0.01"
+            },
+            "risk": {
+              "max_drawdown_fraction": null,
+              "max_equity_fraction": null,
+              "max_notional_exposure": null,
+              "max_position_quantity": null,
+              "minimum_equity": null
+            },
+            "running_peak_equity": "1000",
+            "session_id": "session:a"
+          },
+          "events": [
+            {
+              "causation_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "35902319cc0504274b15ff59b9db13632eade644d846ab74508fe8c30a5e1e7b",
+              "input_sequence": 4,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": null,
+              "reason": null,
+              "sequence": 1,
+              "session_id": "session:a",
+              "state": "submitted",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "35902319cc0504274b15ff59b9db13632eade644d846ab74508fe8c30a5e1e7b",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "decision": {
+                "action": "allow",
+                "approved_quantity": "2",
+                "current_equity": "1000",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "reasons": [],
+                "reference_price": "102",
+                "requested_quantity": "2",
+                "running_peak_equity": "1000",
+                "side": "long",
+                "signal_time": "2026-01-01T00:11:00+00:00"
+              },
+              "error": null,
+              "event_id": "dd824fec4fdddfa076826ac2937f0cbb3bb309adff6f234ed9aad14a996eec63",
+              "input_sequence": 4,
+              "kind": "risk",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 2,
+              "session_id": "session:a",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "actual-close-quote",
+                "kind": "market",
+                "quote": {
+                  "ask": "102",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "100",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 3,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "stage": "acceptance",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "dd824fec4fdddfa076826ac2937f0cbb3bb309adff6f234ed9aad14a996eec63",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "1867503f21399d6e479fe9a208227362ee887de7b631282589c07d296bf1be1f",
+              "input_sequence": 4,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": "submitted",
+              "reason": null,
+              "sequence": 3,
+              "session_id": "session:a",
+              "state": "accepted",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "decision": {
+                "action": "allow",
+                "approved_quantity": "2",
+                "current_equity": "1000",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "reasons": [],
+                "reference_price": "101",
+                "requested_quantity": "2",
+                "running_peak_equity": "1000",
+                "side": "long",
+                "signal_time": "2026-01-01T00:11:00+00:00"
+              },
+              "error": null,
+              "event_id": "e674e6c44a9071d921309b77e6b807067b2f629a321ff3c575f83b294b8e9096",
+              "input_sequence": 5,
+              "kind": "risk",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 4,
+              "session_id": "session:a",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+                "kind": "market",
+                "quote": {
+                  "ask": "101",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "101",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 5,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "stage": "execution",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "assumptions": {
+                "commission_per_unit": "0",
+                "fixed_fee_per_fill": "0",
+                "slippage": "0",
+                "spread": "0"
+              },
+              "causation_id": "e674e6c44a9071d921309b77e6b807067b2f629a321ff3c575f83b294b8e9096",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "dd42d89a1ce422785860331d3d220799e7448271e7fbdac563ce20c29e8072e4",
+              "execution": {
+                "action": "enter_long",
+                "costs": {
+                  "commission": "0",
+                  "fees": "0",
+                  "slippage_cost": "0",
+                  "spread_cost": "0"
+                },
+                "execution_price": "101",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "quantity": "2",
+                "reference_price": "101",
+                "signal_time": "2026-01-01T00:11:00+00:00",
+                "slippage_adjustment": "0",
+                "spread_adjustment": "0"
+              },
+              "input_sequence": 5,
+              "kind": "fill",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 5,
+              "session_id": "session:a",
+              "side": "buy",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+                "kind": "market",
+                "quote": {
+                  "ask": "101",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "101",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 5,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "submission": {
+                "causation_id": "actual-close-quote",
+                "command_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+                "instrument_id": "research:TEST",
+                "kind": "submit",
+                "order_type": "market",
+                "quantity": "2",
+                "sequence": 4,
+                "side": "buy",
+                "time_in_force": "gtc",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "dd42d89a1ce422785860331d3d220799e7448271e7fbdac563ce20c29e8072e4",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "e1eaa788342af5db505ca2fa88a53de325271466fe223e2e035c511fba3c440d",
+              "input_sequence": 5,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": "accepted",
+              "reason": null,
+              "sequence": 6,
+              "session_id": "session:a",
+              "state": "filled",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            }
+          ],
+          "inputs": [
+            {
+              "delivered_at": "2026-01-01T00:11:00+00:00",
+              "event_id": "actual-close-quote",
+              "kind": "market",
+              "quote": {
+                "ask": "102",
+                "available_at": "2026-01-01T00:11:00+00:00",
+                "bid": "100",
+                "dataset_id": "fixture",
+                "instrument_id": "research:TEST",
+                "source_id": "synthetic",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "sequence": 3,
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "actual-close-quote",
+              "command_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+              "instrument_id": "research:TEST",
+              "kind": "submit",
+              "order_type": "market",
+              "quantity": "2",
+              "sequence": 4,
+              "side": "buy",
+              "time_in_force": "gtc",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "delivered_at": "2026-01-01T00:11:00+00:00",
+              "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+              "kind": "market",
+              "quote": {
+                "ask": "101",
+                "available_at": "2026-01-01T00:11:00+00:00",
+                "bid": "101",
+                "dataset_id": "fixture",
+                "instrument_id": "research:TEST",
+                "source_id": "synthetic",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "sequence": 5,
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            }
+          ],
+          "last_sequence": 5,
+          "market": {
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+            "kind": "market",
+            "quote": {
+              "ask": "101",
+              "available_at": "2026-01-01T00:11:00+00:00",
+              "bid": "101",
+              "dataset_id": "fixture",
+              "instrument_id": "research:TEST",
+              "source_id": "synthetic",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "sequence": 5,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+          "state": "filled",
+          "submission": {
+            "causation_id": "actual-close-quote",
+            "command_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+            "instrument_id": "research:TEST",
+            "kind": "submit",
+            "order_type": "market",
+            "quantity": "2",
+            "sequence": 4,
+            "side": "buy",
+            "time_in_force": "gtc",
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "timestamp": "2026-01-01T00:11:00+00:00"
+        },
+        "openings": [
+          {
+            "bar_end": "2026-01-01T00:12:00+00:00",
+            "bar_start": "2026-01-01T00:11:00+00:00",
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "actual-opening-quote",
+            "kind": "bar_open",
+            "opening_price": "101",
+            "previous_close_id": "bar-close-0",
+            "quote": {
+              "ask": "101",
+              "available_at": "2026-01-01T00:11:00+00:00",
+              "bid": "101",
+              "dataset_id": "fixture",
+              "instrument_id": "research:TEST",
+              "source_id": "synthetic",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "sequence": 5,
+            "timeframe": "1m",
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          }
+        ]
+      },
+      "exit_order": null,
+      "feed": {
+        "accepted": 3,
+        "last_delivery": "2026-01-01T00:11:00+00:00",
+        "last_event_id": "actual-opening-quote",
+        "last_market_at": "2026-01-01T00:11:00+00:00",
+        "reason": "fresh",
+        "status": "ready"
+      },
+      "records": [
+        {
+          "account": {
+            "available_funds": "1000",
+            "balance": "1000",
+            "config": {
+              "account_id": "account:a",
+              "denomination": "USD",
+              "instrument": {
+                "asset_class": "equity",
+                "base_currency": null,
+                "calendar": {
+                  "calendar_id": "fixture",
+                  "timezone": "UTC"
+                },
+                "contract_multiplier": "1",
+                "instrument_id": "research:TEST",
+                "lot_size": null,
+                "pip_size": null,
+                "quantity_increment": "1",
+                "quote_currency": "USD",
+                "symbol": "TEST",
+                "tick_size": "0.01"
+              },
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "starting_capital": "1000",
+              "timestamp": "2026-01-01T00:10:00+00:00"
+            },
+            "equity": "1000",
+            "event_sequence": 0,
+            "fees_paid": "0",
+            "last_event_id": "887045d361958a353f26dc8f4df65c53b36f372b1ce4aed5ca789ff2552bd1f8",
+            "last_input_sequence": 0,
+            "position": null,
+            "position_collateral": "0",
+            "realized_pnl": "0",
+            "reservations": [],
+            "reserved_funds": "0",
+            "running_peak_equity": "1000",
+            "state_version": 0,
+            "timestamp": "2026-01-01T00:10:00+00:00",
+            "unrealized_pnl": "0"
+          },
+          "command": {
+            "action": "start",
+            "command_id": "start-1",
+            "reason_reference": "human:start",
+            "schema_version": 1,
+            "sequence": 1,
+            "timestamp": "2026-01-01T00:10:00+00:00"
+          },
+          "config_digest": "2c10067333f1d204518bc5c91c0a5ad1f2df33fdda2a9b85ed88baad19bdf123",
+          "decision": null,
+          "feed": {
+            "accepted": 0,
+            "last_delivery": null,
+            "last_event_id": null,
+            "last_market_at": null,
+            "reason": "missing",
+            "status": "ready"
+          },
+          "financial": [],
+          "input_digest": "9d9a2e4b8abda37ed8c569c32b6a04377810349ed25ca7bcdb6cadd822644349",
+          "input_id": "start-1",
+          "market_event": null,
+          "orders": [],
+          "previous_record_id": null,
+          "reason": "started",
+          "reason_reference": "human:start",
+          "record_id": "2f1b4d71c1c22af282e3ccc03ccfef1a63caa0aa14d7afe3845f0468928a556d",
+          "schema_version": 1,
+          "sequence": 1,
+          "session_id": "session:a",
+          "state": "active",
+          "timestamp": "2026-01-01T00:10:00+00:00",
+          "transitions": [
+            "active"
+          ]
+        },
+        {
+          "account": {
+            "available_funds": "1000",
+            "balance": "1000",
+            "config": {
+              "account_id": "account:a",
+              "denomination": "USD",
+              "instrument": {
+                "asset_class": "equity",
+                "base_currency": null,
+                "calendar": {
+                  "calendar_id": "fixture",
+                  "timezone": "UTC"
+                },
+                "contract_multiplier": "1",
+                "instrument_id": "research:TEST",
+                "lot_size": null,
+                "pip_size": null,
+                "quantity_increment": "1",
+                "quote_currency": "USD",
+                "symbol": "TEST",
+                "tick_size": "0.01"
+              },
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "starting_capital": "1000",
+              "timestamp": "2026-01-01T00:10:00+00:00"
+            },
+            "equity": "1000",
+            "event_sequence": 0,
+            "fees_paid": "0",
+            "last_event_id": "887045d361958a353f26dc8f4df65c53b36f372b1ce4aed5ca789ff2552bd1f8",
+            "last_input_sequence": 0,
+            "position": null,
+            "position_collateral": "0",
+            "realized_pnl": "0",
+            "reservations": [],
+            "reserved_funds": "0",
+            "running_peak_equity": "1000",
+            "state_version": 0,
+            "timestamp": "2026-01-01T00:10:00+00:00",
+            "unrealized_pnl": "0"
+          },
+          "command": null,
+          "config_digest": "2c10067333f1d204518bc5c91c0a5ad1f2df33fdda2a9b85ed88baad19bdf123",
+          "decision": {
+            "account_id": "account:a",
+            "admission_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+            "causation_id": "bar-close-0",
+            "dependencies": [
+              "bar-close-0"
+            ],
+            "features": [],
+            "long": "true",
+            "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+            "reason": "entry_signal",
+            "record_id": "0c8b30f81c22edb4c157f1d492d07424c7ca5a04868784efaa0bb9a07eb74ef4",
+            "schema_version": 1,
+            "sequence": 2,
+            "session_id": "session:a",
+            "short": null,
+            "side": "buy",
+            "source_bar_end": "2026-01-01T00:11:00+00:00",
+            "source_bar_start": "2026-01-01T00:10:00+00:00",
+            "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+            "strategy_id": "a",
+            "strategy_version": 1,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "feed": {
+            "accepted": 1,
+            "last_delivery": "2026-01-01T00:11:00+00:00",
+            "last_event_id": "bar-close-0",
+            "last_market_at": "2026-01-01T00:11:00+00:00",
+            "reason": "fresh",
+            "status": "ready"
+          },
+          "financial": [],
+          "input_digest": "f18befd0bdefbe7f5ef8308ddfb6e44827486deab987b69f25c6da0391a0c989",
+          "input_id": "bar-close-0",
+          "market_event": {
+            "available_at": "2026-01-01T00:11:00+00:00",
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "bar-close-0",
+            "kind": "bar_close",
+            "observation": {
+              "bar": {
+                "available_at": "2026-01-01T00:11:00+00:00",
+                "close": "101",
+                "dataset_id": "fixture",
+                "end_time": "2026-01-01T00:11:00+00:00",
+                "high": "101",
+                "instrument_id": "research:TEST",
+                "low": "101",
+                "open": "101",
+                "price_type": "mid",
+                "source_id": "synthetic",
+                "start_time": "2026-01-01T00:10:00+00:00",
+                "timeframe": "1m",
+                "volume": null,
+                "volume_type": null
+              },
+              "delivered_at": "2026-01-01T00:11:00+00:00",
+              "event_id": "bar-close-0",
+              "kind": "bar_close",
+              "sequence": 2,
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "occurred_at": "2026-01-01T00:11:00+00:00",
+            "provenance": {
+              "classification": "synthetic-declared-openings",
+              "dataset_id": "fixture",
+              "source_id": "synthetic",
+              "source_reference": "synthetic:declared-opening-feed",
+              "version_digest": "7fc62e73b7e3c43696409fa8703fd4ddcb069c19a2c802fa466856d349f5c565"
+            },
+            "schema_version": 1,
+            "sequence": 2,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "orders": [],
+          "previous_record_id": "2f1b4d71c1c22af282e3ccc03ccfef1a63caa0aa14d7afe3845f0468928a556d",
+          "reason": "evaluated",
+          "reason_reference": null,
+          "record_id": "2b374baec990d6dca3513df61aaa4e758ec95919a9ccbae3b0e293c2f823ab78",
+          "schema_version": 1,
+          "sequence": 2,
+          "session_id": "session:a",
+          "state": "active",
+          "timestamp": "2026-01-01T00:11:00+00:00",
+          "transitions": []
+        },
+        {
+          "account": {
+            "available_funds": "796",
+            "balance": "1000",
+            "config": {
+              "account_id": "account:a",
+              "denomination": "USD",
+              "instrument": {
+                "asset_class": "equity",
+                "base_currency": null,
+                "calendar": {
+                  "calendar_id": "fixture",
+                  "timezone": "UTC"
+                },
+                "contract_multiplier": "1",
+                "instrument_id": "research:TEST",
+                "lot_size": null,
+                "pip_size": null,
+                "quantity_increment": "1",
+                "quote_currency": "USD",
+                "symbol": "TEST",
+                "tick_size": "0.01"
+              },
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "starting_capital": "1000",
+              "timestamp": "2026-01-01T00:10:00+00:00"
+            },
+            "equity": "1000",
+            "event_sequence": 1,
+            "fees_paid": "0",
+            "last_event_id": "7c35a1e33253d6f9548a03054a3ecbbf1b16027c72ade3f5151d0df1645accc4",
+            "last_input_sequence": 1,
+            "position": null,
+            "position_collateral": "0",
+            "realized_pnl": "0",
+            "reservations": [
+              {
+                "accepted_event_id": "1867503f21399d6e479fe9a208227362ee887de7b631282589c07d296bf1be1f",
+                "account_id": "account:a",
+                "amount": "204",
+                "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+                "reservation_id": "b62d1f7169c47efc38b70c5cd609f223fc736c06ea01618b3978c9d071b40716",
+                "strategy_id": "a"
+              }
+            ],
+            "reserved_funds": "204",
+            "running_peak_equity": "1000",
+            "state_version": 1,
+            "timestamp": "2026-01-01T00:11:00+00:00",
+            "unrealized_pnl": "0"
+          },
+          "command": null,
+          "config_digest": "2c10067333f1d204518bc5c91c0a5ad1f2df33fdda2a9b85ed88baad19bdf123",
+          "decision": null,
+          "feed": {
+            "accepted": 2,
+            "last_delivery": "2026-01-01T00:11:00+00:00",
+            "last_event_id": "actual-close-quote",
+            "last_market_at": "2026-01-01T00:11:00+00:00",
+            "reason": "fresh",
+            "status": "ready"
+          },
+          "financial": [
+            {
+              "account_id": "account:a",
+              "after_version": 1,
+              "available_funds": "796",
+              "balance": "1000",
+              "before_version": 0,
+              "causation_id": "1867503f21399d6e479fe9a208227362ee887de7b631282589c07d296bf1be1f",
+              "equity": "1000",
+              "event_id": "7c35a1e33253d6f9548a03054a3ecbbf1b16027c72ade3f5151d0df1645accc4",
+              "fees_paid": "0",
+              "input_digest": "a7bb30797437aae2b325c9a3ed4c4d51e1d03d7713be2395f23994a50e3d5760",
+              "input_id": "dcb0139dac119ea743fe73e3c82f16f89408454a7e4be59b3c8c49734b3a9521",
+              "input_sequence": 1,
+              "kind": "reserve",
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "position_collateral": "0",
+              "previous_event_id": "887045d361958a353f26dc8f4df65c53b36f372b1ce4aed5ca789ff2552bd1f8",
+              "realized_pnl": "0",
+              "reserved_funds": "204",
+              "sequence": 1,
+              "strategy_id": "a",
+              "timestamp": "2026-01-01T00:11:00+00:00",
+              "transaction_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "unrealized_pnl": "0"
+            }
+          ],
+          "input_digest": "e1c0edb0e18dde85c9db9c75965ff5a500f4c4b7b4a27af081299cb3f36ebd9f",
+          "input_id": "actual-close-quote",
+          "market_event": {
+            "available_at": "2026-01-01T00:11:00+00:00",
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "actual-close-quote",
+            "kind": "quote",
+            "observation": {
+              "delivered_at": "2026-01-01T00:11:00+00:00",
+              "event_id": "actual-close-quote",
+              "kind": "market",
+              "quote": {
+                "ask": "102",
+                "available_at": "2026-01-01T00:11:00+00:00",
+                "bid": "100",
+                "dataset_id": "fixture",
+                "instrument_id": "research:TEST",
+                "source_id": "synthetic",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "sequence": 3,
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "occurred_at": "2026-01-01T00:11:00+00:00",
+            "provenance": {
+              "classification": "synthetic-declared-openings",
+              "dataset_id": "fixture",
+              "source_id": "synthetic",
+              "source_reference": "synthetic:declared-opening-feed",
+              "version_digest": "7fc62e73b7e3c43696409fa8703fd4ddcb069c19a2c802fa466856d349f5c565"
+            },
+            "schema_version": 1,
+            "sequence": 3,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "orders": [
+            {
+              "causation_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "35902319cc0504274b15ff59b9db13632eade644d846ab74508fe8c30a5e1e7b",
+              "input_sequence": 4,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": null,
+              "reason": null,
+              "sequence": 1,
+              "session_id": "session:a",
+              "state": "submitted",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "35902319cc0504274b15ff59b9db13632eade644d846ab74508fe8c30a5e1e7b",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "decision": {
+                "action": "allow",
+                "approved_quantity": "2",
+                "current_equity": "1000",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "reasons": [],
+                "reference_price": "102",
+                "requested_quantity": "2",
+                "running_peak_equity": "1000",
+                "side": "long",
+                "signal_time": "2026-01-01T00:11:00+00:00"
+              },
+              "error": null,
+              "event_id": "dd824fec4fdddfa076826ac2937f0cbb3bb309adff6f234ed9aad14a996eec63",
+              "input_sequence": 4,
+              "kind": "risk",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 2,
+              "session_id": "session:a",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "actual-close-quote",
+                "kind": "market",
+                "quote": {
+                  "ask": "102",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "100",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 3,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "stage": "acceptance",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "dd824fec4fdddfa076826ac2937f0cbb3bb309adff6f234ed9aad14a996eec63",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "1867503f21399d6e479fe9a208227362ee887de7b631282589c07d296bf1be1f",
+              "input_sequence": 4,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": "submitted",
+              "reason": null,
+              "sequence": 3,
+              "session_id": "session:a",
+              "state": "accepted",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            }
+          ],
+          "previous_record_id": "2b374baec990d6dca3513df61aaa4e758ec95919a9ccbae3b0e293c2f823ab78",
+          "reason": "submitted",
+          "reason_reference": null,
+          "record_id": "77022f0bdd726c5db61833892c9f7569bb14826e4f83652350e58fbd61cbd10d",
+          "schema_version": 1,
+          "sequence": 3,
+          "session_id": "session:a",
+          "state": "active",
+          "timestamp": "2026-01-01T00:11:00+00:00",
+          "transitions": []
+        },
+        {
+          "account": {
+            "available_funds": "798",
+            "balance": "1000",
+            "config": {
+              "account_id": "account:a",
+              "denomination": "USD",
+              "instrument": {
+                "asset_class": "equity",
+                "base_currency": null,
+                "calendar": {
+                  "calendar_id": "fixture",
+                  "timezone": "UTC"
+                },
+                "contract_multiplier": "1",
+                "instrument_id": "research:TEST",
+                "lot_size": null,
+                "pip_size": null,
+                "quantity_increment": "1",
+                "quote_currency": "USD",
+                "symbol": "TEST",
+                "tick_size": "0.01"
+              },
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "starting_capital": "1000",
+              "timestamp": "2026-01-01T00:10:00+00:00"
+            },
+            "equity": "1000",
+            "event_sequence": 2,
+            "fees_paid": "0",
+            "last_event_id": "77369350891f15aacf574bb657696411d89302b971c9a309b4ea3322e1d066bc",
+            "last_input_sequence": 2,
+            "position": {
+              "account_id": "account:a",
+              "cost_basis": "202",
+              "direction": "long",
+              "entry_basis": "101",
+              "entry_time": "2026-01-01T00:11:00+00:00",
+              "entry_transaction_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "fees_paid": "0",
+              "instrument": {
+                "asset_class": "equity",
+                "base_currency": null,
+                "calendar": {
+                  "calendar_id": "fixture",
+                  "timezone": "UTC"
+                },
+                "contract_multiplier": "1",
+                "instrument_id": "research:TEST",
+                "lot_size": null,
+                "pip_size": null,
+                "quantity_increment": "1",
+                "quote_currency": "USD",
+                "symbol": "TEST",
+                "tick_size": "0.01"
+              },
+              "quantity": "2",
+              "realized_pnl": "0",
+              "strategy_id": "a",
+              "unrealized_pnl": "0",
+              "valuation": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+                "kind": "market",
+                "quote": {
+                  "ask": "101",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "101",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 5,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              }
+            },
+            "position_collateral": "202",
+            "realized_pnl": "0",
+            "reservations": [],
+            "reserved_funds": "0",
+            "running_peak_equity": "1000",
+            "state_version": 2,
+            "timestamp": "2026-01-01T00:11:00+00:00",
+            "unrealized_pnl": "0"
+          },
+          "command": null,
+          "config_digest": "2c10067333f1d204518bc5c91c0a5ad1f2df33fdda2a9b85ed88baad19bdf123",
+          "decision": null,
+          "feed": {
+            "accepted": 3,
+            "last_delivery": "2026-01-01T00:11:00+00:00",
+            "last_event_id": "actual-opening-quote",
+            "last_market_at": "2026-01-01T00:11:00+00:00",
+            "reason": "fresh",
+            "status": "ready"
+          },
+          "financial": [
+            {
+              "account_id": "account:a",
+              "after_version": 2,
+              "available_funds": "798",
+              "balance": "1000",
+              "before_version": 1,
+              "causation_id": "dd42d89a1ce422785860331d3d220799e7448271e7fbdac563ce20c29e8072e4",
+              "equity": "1000",
+              "event_id": "77369350891f15aacf574bb657696411d89302b971c9a309b4ea3322e1d066bc",
+              "fees_paid": "0",
+              "input_digest": "e43c9b45f1ce8761c47633e9b694f76116e5768793f301ef34e69f4c94287859",
+              "input_id": "7cdc0cb22dde57dfa703abb865fe4e61610ff5cbcca3daac84d602edae021ce0",
+              "input_sequence": 2,
+              "kind": "settle",
+              "policy": "prefunded-linear-equity-pnl-v1",
+              "position_collateral": "202",
+              "previous_event_id": "7c35a1e33253d6f9548a03054a3ecbbf1b16027c72ade3f5151d0df1645accc4",
+              "realized_pnl": "0",
+              "reserved_funds": "0",
+              "sequence": 2,
+              "strategy_id": "a",
+              "timestamp": "2026-01-01T00:11:00+00:00",
+              "transaction_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "unrealized_pnl": "0"
+            }
+          ],
+          "input_digest": "63c4528a6c69a6199cd34607759782095e68079cc14c9eac42b44fbe3de3de32",
+          "input_id": "actual-opening-quote",
+          "market_event": {
+            "available_at": "2026-01-01T00:11:00+00:00",
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "actual-opening-quote",
+            "kind": "opening",
+            "observation": {
+              "bar_end": "2026-01-01T00:12:00+00:00",
+              "bar_start": "2026-01-01T00:11:00+00:00",
+              "delivered_at": "2026-01-01T00:11:00+00:00",
+              "event_id": "actual-opening-quote",
+              "kind": "bar_open",
+              "opening_price": "101",
+              "previous_close_id": "bar-close-0",
+              "quote": {
+                "ask": "101",
+                "available_at": "2026-01-01T00:11:00+00:00",
+                "bid": "101",
+                "dataset_id": "fixture",
+                "instrument_id": "research:TEST",
+                "source_id": "synthetic",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "sequence": 5,
+              "timeframe": "1m",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            "occurred_at": "2026-01-01T00:11:00+00:00",
+            "provenance": {
+              "classification": "synthetic-declared-openings",
+              "dataset_id": "fixture",
+              "source_id": "synthetic",
+              "source_reference": "synthetic:declared-opening-feed",
+              "version_digest": "7fc62e73b7e3c43696409fa8703fd4ddcb069c19a2c802fa466856d349f5c565"
+            },
+            "schema_version": 1,
+            "sequence": 5,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          },
+          "orders": [
+            {
+              "causation_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "decision": {
+                "action": "allow",
+                "approved_quantity": "2",
+                "current_equity": "1000",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "reasons": [],
+                "reference_price": "101",
+                "requested_quantity": "2",
+                "running_peak_equity": "1000",
+                "side": "long",
+                "signal_time": "2026-01-01T00:11:00+00:00"
+              },
+              "error": null,
+              "event_id": "e674e6c44a9071d921309b77e6b807067b2f629a321ff3c575f83b294b8e9096",
+              "input_sequence": 5,
+              "kind": "risk",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 4,
+              "session_id": "session:a",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+                "kind": "market",
+                "quote": {
+                  "ask": "101",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "101",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 5,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "stage": "execution",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "assumptions": {
+                "commission_per_unit": "0",
+                "fixed_fee_per_fill": "0",
+                "slippage": "0",
+                "spread": "0"
+              },
+              "causation_id": "e674e6c44a9071d921309b77e6b807067b2f629a321ff3c575f83b294b8e9096",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "dd42d89a1ce422785860331d3d220799e7448271e7fbdac563ce20c29e8072e4",
+              "execution": {
+                "action": "enter_long",
+                "costs": {
+                  "commission": "0",
+                  "fees": "0",
+                  "slippage_cost": "0",
+                  "spread_cost": "0"
+                },
+                "execution_price": "101",
+                "execution_time": "2026-01-01T00:11:00+00:00",
+                "quantity": "2",
+                "reference_price": "101",
+                "signal_time": "2026-01-01T00:11:00+00:00",
+                "slippage_adjustment": "0",
+                "spread_adjustment": "0"
+              },
+              "input_sequence": 5,
+              "kind": "fill",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "sequence": 5,
+              "session_id": "session:a",
+              "side": "buy",
+              "source": {
+                "delivered_at": "2026-01-01T00:11:00+00:00",
+                "event_id": "82fafc22f801da0c042112a271ee93223d1f895479d032562d9bc695d056d2c4",
+                "kind": "market",
+                "quote": {
+                  "ask": "101",
+                  "available_at": "2026-01-01T00:11:00+00:00",
+                  "bid": "101",
+                  "dataset_id": "fixture",
+                  "instrument_id": "research:TEST",
+                  "source_id": "synthetic",
+                  "timestamp": "2026-01-01T00:11:00+00:00"
+                },
+                "sequence": 5,
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "submission": {
+                "causation_id": "actual-close-quote",
+                "command_id": "2e46c3f2fd1c93334971752f72efe0e1401e0da85431949278324dfe5add3378",
+                "instrument_id": "research:TEST",
+                "kind": "submit",
+                "order_type": "market",
+                "quantity": "2",
+                "sequence": 4,
+                "side": "buy",
+                "time_in_force": "gtc",
+                "timestamp": "2026-01-01T00:11:00+00:00"
+              },
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            },
+            {
+              "causation_id": "dd42d89a1ce422785860331d3d220799e7448271e7fbdac563ce20c29e8072e4",
+              "config_digest": "a1c0e083b88acf774327e05d814e74bc747243c85dc4cc7306b4bca3a21bc6a5",
+              "event_id": "e1eaa788342af5db505ca2fa88a53de325271466fe223e2e035c511fba3c440d",
+              "input_sequence": 5,
+              "kind": "transition",
+              "order_id": "03384b2a33c529fd7266c61db0a69c1d41dd24703928ffc0dd459829244fe496",
+              "previous_state": "accepted",
+              "reason": null,
+              "sequence": 6,
+              "session_id": "session:a",
+              "state": "filled",
+              "timestamp": "2026-01-01T00:11:00+00:00"
+            }
+          ],
+          "previous_record_id": "77022f0bdd726c5db61833892c9f7569bb14826e4f83652350e58fbd61cbd10d",
+          "reason": "opening_processed",
+          "reason_reference": null,
+          "record_id": "2acf880ed9be8382305e8e3ac4367d205f7886b6f9b296fd5bab2862a7458e47",
+          "schema_version": 1,
+          "sequence": 5,
+          "session_id": "session:a",
+          "state": "active",
+          "timestamp": "2026-01-01T00:11:00+00:00",
+          "transitions": []
+        }
+      ],
+      "runtime": {
+        "admission": {
+          "account_id": "account:a",
+          "admitted": true,
+          "causation_id": "efc7b5da1a2d0daa911588dbe8ae54399bdfa35a6812ca55e8c1bd3d85745f7c",
+          "config_digest": "877e421c63932b4bc8043892ef9705d8cece2fd5173bb2702b5ffd2b0cccb01c",
+          "evidence": [
+            {
+              "evidence_id": "9eaa711632343bfebaa25d598ec27183a700f221637eebc22c4358679a32e3dd",
+              "result_digest": "b2d5d716e9065ce19071a942ca53a142f040c3ec9abc32a9fa3b0b84fd802f99"
+            },
+            {
+              "evidence_id": "d4daa550f810c568a9669769dd6351f6b99699679824b1e508549d6499f6306c",
+              "result_digest": "efd5c3ede00e892a9e8baaf41dc177a8d093812a0603878862f441e67cf21ce7"
+            },
+            {
+              "evidence_id": "d399b5a530380d076422f5a1592df9361ab19df89eedc9a23ee66f3d9340a797",
+              "result_digest": "a49a920dc24f55c1f0e8f64212dd278fa8ee250ac111c20f4edf0f8184a0170f"
+            }
+          ],
+          "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+          "reason": "admitted",
+          "record_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+          "schema_version": 1,
+          "sequence": 0,
+          "session_id": "session:a",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timestamp": "2026-01-01T00:10:00+00:00"
+        },
+        "config": {
+          "account": {
+            "account_id": "account:a",
+            "denomination": "USD",
+            "instrument": {
+              "asset_class": "equity",
+              "base_currency": null,
+              "calendar": {
+                "calendar_id": "fixture",
+                "timezone": "UTC"
+              },
+              "contract_multiplier": "1",
+              "instrument_id": "research:TEST",
+              "lot_size": null,
+              "pip_size": null,
+              "quantity_increment": "1",
+              "quote_currency": "USD",
+              "symbol": "TEST",
+              "tick_size": "0.01"
+            },
+            "policy": "prefunded-linear-equity-pnl-v1",
+            "starting_capital": "1000",
+            "timestamp": "2026-01-01T00:10:00+00:00"
+          },
+          "costs": {
+            "commission_per_unit": "0",
+            "fixed_fee_per_fill": "0",
+            "slippage": "0",
+            "spread": "0"
+          },
+          "maximum_events": 5000,
+          "price_type": "mid",
+          "quantity": "2",
+          "risk": {
+            "max_drawdown_fraction": null,
+            "max_equity_fraction": null,
+            "max_notional_exposure": null,
+            "max_position_quantity": null,
+            "minimum_equity": null
+          },
+          "schema_version": 1,
+          "session_id": "session:a",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timeframe": "1m",
+          "timestamp": "2026-01-01T00:10:00+00:00"
+        },
+        "decisions": [
+          {
+            "account_id": "account:a",
+            "admission_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+            "causation_id": "bar-close-0",
+            "dependencies": [
+              "bar-close-0"
+            ],
+            "features": [],
+            "long": "true",
+            "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+            "reason": "entry_signal",
+            "record_id": "0c8b30f81c22edb4c157f1d492d07424c7ca5a04868784efaa0bb9a07eb74ef4",
+            "schema_version": 1,
+            "sequence": 2,
+            "session_id": "session:a",
+            "short": null,
+            "side": "buy",
+            "source_bar_end": "2026-01-01T00:11:00+00:00",
+            "source_bar_start": "2026-01-01T00:10:00+00:00",
+            "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+            "strategy_id": "a",
+            "strategy_version": 1,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          }
+        ],
+        "inputs": [
+          {
+            "bar": {
+              "available_at": "2026-01-01T00:11:00+00:00",
+              "close": "101",
+              "dataset_id": "fixture",
+              "end_time": "2026-01-01T00:11:00+00:00",
+              "high": "101",
+              "instrument_id": "research:TEST",
+              "low": "101",
+              "open": "101",
+              "price_type": "mid",
+              "source_id": "synthetic",
+              "start_time": "2026-01-01T00:10:00+00:00",
+              "timeframe": "1m",
+              "volume": null,
+              "volume_type": null
+            },
+            "delivered_at": "2026-01-01T00:11:00+00:00",
+            "event_id": "bar-close-0",
+            "kind": "bar_close",
+            "sequence": 2,
+            "timestamp": "2026-01-01T00:11:00+00:00"
+          }
+        ],
+        "intent": {
+          "account_id": "account:a",
+          "admission_id": "719cb790954ce2450f42040da8cfb179bb6cccd488448456319f4ea190421bcf",
+          "causation_id": "bar-close-0",
+          "decision_id": "0c8b30f81c22edb4c157f1d492d07424c7ca5a04868784efaa0bb9a07eb74ef4",
+          "execution_policy": "explicit-locked-next-open-v1",
+          "instrument_id": "research:TEST",
+          "policy_digest": "c05b513c4c56397bae397dc4193160668b68ea1d4554c6a54ab5d973ad9c41f7",
+          "quantity": "2",
+          "reason": "entry_signal",
+          "record_id": "bc6f52ae6bd97e2ee4115b6c1650966cbec73b06e3abdd142c3f271c4b802c0a",
+          "schema_version": 1,
+          "sequence": 2,
+          "session_id": "session:a",
+          "side": "buy",
+          "source_bar_end": "2026-01-01T00:11:00+00:00",
+          "source_bar_start": "2026-01-01T00:10:00+00:00",
+          "strategy_digest": "582e49b608dc244e83b540131d15594f59d72674d50564f377c596d5ae097a79",
+          "strategy_id": "a",
+          "strategy_version": 1,
+          "timestamp": "2026-01-01T00:11:00+00:00"
+        },
+        "last_sequence": 2,
+        "state": "entry_intent_emitted",
+        "timestamp": "2026-01-01T00:11:00+00:00"
+      },
+      "state": "active"
+    }
+  }
+}

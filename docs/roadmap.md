@@ -1,6 +1,6 @@
 # Roadmap
 
-**Status: early development.** Phases 1 through 17 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 implementation is COMPLETE and externally runtime-verified; Phases 18A–18E add the offline order kernel, prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and durable local persistence/recovery; the supported bounded Phase 18F scope includes advanced orders, protective OCO and separately approved durable strategy entries, with retained-history copying remediated; bounded Phase 19 portfolio coordination and Phase 20 trade/research history are implemented; bounded Phase 21 local FastAPI is implemented; Phases 22–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
+**Status: early development.** Phases 1 through 17 are implemented: the documentation/package foundation, strict market-data domain contracts, and the Dukascopy historical tick-to-quote adapter with offline tests, followed by dataset quality reports, causal UTC resampling, and immutable local SQLite storage. Successful live downloading remains unverified after an HTTP 429 probe. Phase 5 adds immutable strategy contracts, semantic validation and exact-version approval with offline tests. Phase 6 adds causal Decimal features and structural strategy-reference compatibility. Phase 7 adds approved-strategy deterministic bar replay with zero-cost next-open fills and Decimal research equity. Phase 8 adds deterministic spread/slippage/commissions/fees and gross/net accounting. Phase 9 adds separate deterministic net trade/account-return, volatility, drawdown, holding-duration and Sharpe analytics. Phase 10 adds independent chronological holdouts, rolling/expanding walk-forward folds and explicitly approved parameter-variant sensitivity. Phase 11 adds mandatory deterministic fixed-quantity entry limits, causal drawdown gating and audited decisions. Phase 12 adds leakage-safe offline supervised datasets, deterministic ridge artifacts and OOS predictions integrated as canonical ML features. Phase 13 adds provider-neutral async LLM contracts, structured-output validation, bounded retries/usage checks and deterministic fake-provider tests. Phase 14 adds strict natural-language interpretation into unapproved Phase 5 proposals or clarification questions, with deterministic validation and complete invocation provenance. Phase 15 adds chart + text interpretation with ordered opaque image inputs, visual evidence, conflict clarification and the same unapproved proposal conversion. Phase 16 adds bounded LangGraph routing, terminal clarification and explicit human interrupt/resume without Phase 5 approval or quant execution. Phase 17 implementation is COMPLETE and externally runtime-verified; Phases 18A–18E add the offline order kernel, prefunded research account, bounded causal strategy admission/runtime, deterministic market sessions and durable local persistence/recovery; the supported bounded Phase 18F scope includes advanced orders, protective OCO and separately approved durable strategy entries, with retained-history copying remediated; bounded Phase 19 portfolio coordination and Phase 20 trade/research history are implemented; bounded Phase 21 local FastAPI is implemented; Phase 22 bounded dashboard is implemented; Phases 23–25 remain planned. The phase order follows dependencies, and later phases must not be treated as available features.
 
 Deliver each phase as a small, reviewable increment with relevant behavioral tests, documented assumptions, and an updated architecture/status statement. Add dependencies and modules only when the phase needs them. Phase 23 consolidates end-to-end coverage; it does not postpone unit/integration testing until the end.
 
@@ -429,13 +429,39 @@ latency observations are recorded in [phase21-report.md](phase21-report.md).
 
 No background/durable job worker, multi-user production security, paper commands,
 HTTP approval/recovery, journal writes, live brokerage, dashboard or PostgreSQL
-migration is introduced. Phase 22 and later phases remain planned.
+migration is introduced by Phase 21. Phase 22 supplies the bounded dashboard below;
+Phases 23–25 remain planned.
 
 ## 22. Professional dashboard/frontend
 
 Purpose: make research, review, and paper-trading workflows usable.
 
 Deliverables: strategy authoring and exact-version approval, image/text uploads, run/validation comparisons, risk visibility, portfolio views, and journal workflows. Select the frontend framework at this phase. Display backend metrics with provenance and clear historical/simulated labels.
+
+**Bounded Phase 22 increment implemented.** An isolated React/TypeScript/Vite
+workspace provides seven responsive dark dashboard pages, generated OpenAPI
+contracts, in-memory bearer credentials and a fixed loopback development proxy.
+Reader/operator interface controls retain backend authorization boundaries. All
+nine research operation kinds use strict JSON inputs, explicit submission and
+synchronous execution, queued cancellation and metadata/result inspection.
+StrategyContent drafts expose API validation issues/digests while exact-version
+approval remains in trusted Python services. Local text notes are preview/editor
+state only; no image upload or provider inference is claimed.
+
+Existing read-only paper/portfolio/journal routes supply exact Decimal labels,
+UTC/source attribution, reservations, static budgets, risk, recovery and valuation
+indicators, bounded backend-cursor history and incomplete-position summaries.
+The historical debugger shows recorded quotes/bar closes and actual fill points,
+zoom/pan and causal event selection, plus a clearly labeled deterministic offline
+test-service fixture. No missing prices, candles, intrabar paths or financial
+metrics are synthesized. Automated frontend/API contract checks, production build,
+regression results and performance observations are recorded in
+[phase22-report.md](phase22-report.md).
+
+The roadmap's broader approval/upload/journal-authoring aspirations require backend
+contracts that Phase 21 does not provide. HTTP approval, uploads/inference, trading
+commands, note writes, standalone market-data/backtest-input history, durable jobs
+and production hosting remain unsupported. Phase 23 is not implemented here.
 
 ## 23. Integration/end-to-end testing
 

@@ -1,5 +1,61 @@
 # Architecture
 
+## Implemented Phase 22 dashboard
+
+The isolated `frontend/` workspace uses React, strict TypeScript and Vite, with
+hash routes for portfolio, research, strategy, results, paper, journal and the
+visual debugger. Native semantic controls and shared panels, tables, facts and
+error/loading/empty states support a restrained dark desktop layout and smaller
+screens. Lightweight Charts is isolated to the lazy debugger bundle; its official
+attribution remains visible. No domain package depends on frontend code.
+
+`frontend/scripts/export_contracts.py` exports the real app's OpenAPI and fixed-clock
+synthetic service fixtures. `openapi-typescript` generates checked-in contracts.
+The fetch client uses fixed same-origin `/api/v1` routes with bearer credentials
+held only in memory; Vite proxies `/api` to `127.0.0.1:8000`. The reader/operator
+interface preference never grants backend authority. No token is persisted in
+browser storage, URLs, build-time environment variables, logs or tracked fixtures.
+
+React component state retains local strategy/research drafts and at most the API's
+operation identity limit within one connection. Generation guards reject late
+metadata callbacks after disconnect/reconnect. Read resources abort on identity
+changes/unmount; cancellation of a browser request is never represented as
+cancellation of Python execution. Manual status/refresh respects the process-local,
+explicit synchronous lifecycle. No automatic submission, execution or polling
+loop is introduced. Hidden draft editors retain text without rendering histories.
+
+Financial labels retain Decimal strings and UTC timestamp fractional precision.
+The browser groups digits without rounding and rejects lossy numeric JSON, unsafe
+integers and duplicate keys. Portfolio missing/stale flags suppress current equity,
+P&L and exposure; paper equity is explicitly a recorded historical mark. Results
+verify the SHA-256 of the retained canonical JSON before displaying metrics. JSON
+record downloads preserve field values; only canonical result downloads preserve
+the server's original result bytes.
+
+The debugger consumes actual paper `SessionRecord` observations/orders/decisions
+or an explicitly selected offline Python fixture. Recorded bid/ask and complete
+bar closes become approximate chart coordinates; actual fills alone supply entry/
+exit price dots. No candle construction, missing fill inference, decision-price
+guessing or intrabar ordering occurs. Duplicate/unsupported chart coordinates are
+omitted with a count; exact observation rows and original causal records remain
+available. Stops, partial fills, risk and OCO evidence are inspected only when
+present. Timeline selection, mouse interactions and accessible zoom/pan controls
+operate on historical data. There is no standalone production historical-price,
+backtest-input or unified paged debugger-event contract yet.
+
+Journal pages pass identity/time filters and original cursors to Python, cap HTTP
+pages at 20 records and navigation at 100 pages, and read existing summaries for
+open/incomplete position status. Paper event and debugger tables render 20 rows
+per page; paper snapshots remain bounded by the Phase 21 service catalogue.
+Chart transforms and record text use memoization; details and result previews
+truncate display while allowing complete downloads.
+
+Supported/unsupported workflows, startup, exact tests/builds, dependency choices,
+CPU measurements and browser QA limitations are in [phase22-report.md](phase22-report.md)
+and [the frontend README](../frontend/README.md). Approval, image upload/provider
+inference, paper commands/recovery, account/portfolio mutations, journal writes,
+durable/background jobs and live trading remain unavailable through HTTP.
+
 ## Implemented Phase 21 HTTP application
 
 `quantlab.api.create_app` isolates FastAPI from quantitative packages. Versioned
@@ -49,7 +105,7 @@ Forex is the first detailed market implementation. Instrument, timestamp, execut
 
 In scope for the planned first-generation platform: data ingestion and quality checks, strategy definitions, deterministic quant engines, research validation, ML experiments, AI-assisted interpretation, agent orchestration, MCP tools, risk, paper trading, portfolios, journaling, and a separate API/dashboard.
 
-Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; bounded Phase 21 local HTTP research/reporting is implemented; broader execution and Phase 22+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
+Outside current scope: real-money brokerage execution, autonomous strategy deployment, guaranteed profitability, and V2 self-evolving alpha research. Phases 2–4 implement market-data domain contracts, historical quote ingestion, quality checks, UTC aggregation, and local storage; Phase 5 adds strategy specification contracts and Phase 6 implements feature computation and Phase 7 adds approved-strategy research backtesting and Phase 8 adds deterministic execution costs and Phase 9 adds performance analytics and Phase 10 adds chronological research validation and Phase 11 adds mandatory deterministic entry risk and Phase 12 adds offline ML research. Phase 13 adds provider-neutral LLM infrastructure, Phase 14 adds natural-language interpretation and Phase 15 adds chart + text interpretation and Phase 16 adds bounded human-review orchestration; Phase 17 implementation is complete; Phases 18A and 18B add the offline order kernel and separate prefunded research accounting described below. Phases 18A through 18F, the bounded Phase 19 portfolio foundation and Phase 20 trade/research journal are implemented; bounded Phase 21 local HTTP research/reporting is implemented; the bounded Phase 22 dashboard is implemented; broader execution and Phase 23+ capabilities remain planned. AI output and screenshots are research inputs, not authoritative historical prices or approved execution instructions.
 
 ## Implemented Phase 2 contracts
 
@@ -770,7 +826,11 @@ Introduce background workers only when workload demands them. Design request/run
 
 ### Dashboard/frontend
 
-A separate web interface will support strategy authoring/review, chart uploads, run comparison, validation results, risk visibility, paper-trading state, portfolios, and journaling. React/Next.js is a likely direction, not a final dependency decision.
+Phase 22 selects React/TypeScript/Vite for the separate local web interface and
+implements authoring/validation, existing operation/result inspection, risk,
+paper/portfolio reports, journal queries and a historical visual debugger.
+Chart uploads, HTTP approval, saved notes and broader comparisons require future
+backend contracts; the Phase 22 implementation and its limits are described above.
 
 Show draft versus approved state, historical versus simulated results, data ranges, execution assumptions, and run provenance. Review screens must display unresolved interpretation details and the exact version being approved. Display authoritative backend results; frontend formatting must not become a second financial calculation engine.
 
@@ -824,7 +884,7 @@ Do not implement evolution loops, self-modifying code, autonomous promotions, or
 
 ## Open decisions
 
-Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); future optimization of the implemented bar-by-bar engine; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; authentication model; frontend framework; and deployment topology remain open. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
+Additional historical providers and provider-specific redistribution permissions; future dataframe adoption (Phase 4 uses canonical sequences); future optimization of the implemented bar-by-bar engine; columnar export formats; LLM providers and upload/privacy constraints; validation/eligibility thresholds; production authentication model and deployment topology remain open; React/TypeScript/Vite is selected for the local Phase 22 dashboard. Resolve each through a focused design decision when its phase begins and update this document with the resulting tradeoffs.
 
 ## Implemented Phase 18C strategy admission and causal runtime
 
